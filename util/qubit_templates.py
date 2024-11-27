@@ -71,6 +71,74 @@ def device_FeedLine():
     FL.add_ref(D3)
     return FL
 
+def device_CornerPoints(point_pos = [(2150,2150),(-2150,2150),(-2150,-2150),(2150,-2150)]):
+    CP = Device("CornerPoints")
+    box_width = 10
+    box_gap_width = 20
+    rectangle = pg.rectangle( (box_width, box_width), layer = 4)
+    CornerPoint = pg.invert(rectangle, border = box_gap_width, precision = 1e-6, layer = 4)
+    for center in point_pos:
+        cp = CP.add_ref( CornerPoint )
+        cp.center = center
+    return CP
+
+# def device_TestAreas(point_pos = [(-1493.5, -1181.413), (-1493.5, -1831.408), (-843.5, -1181.413), (-843.5, -1831.408)]):
+def device_TestAreas(point_pos = [(-1743.5, -1231.413), (-1743.5, -1881.408), (-1093.5, -1231.413), (-1093.5, -1881.408)]):
+
+    TPs = Device("TestPoints")
+    TP = Device("TestPoint")    
+    box_width = 279
+    box_length = 135
+    box_gap_width = 27
+    box = pg.bbox([(-0.5*box_width,-box_length),(0.5*box_width,0)], layer = 4)
+    box = pg.invert(box, border = box_gap_width, precision = 1e-6, layer = 4)
+
+    stub_width = 18
+    stub_length = 68.4
+    stub = pg.bbox([(-0.5*stub_width, 0),(0.5*stub_width, stub_length)], layer = 4)
+    box = pg.boolean(box, stub, 'not', layer = 4)
+    TP.add_ref(box)
+
+    stub_gap_width = 18
+    stub_gap_length = 14.4    
+
+    polpoints = [
+        ( -0.5*stub_width-stub_gap_width, box_gap_width                 ),
+        ( -0.5*stub_width-stub_gap_width, stub_length + stub_gap_length ),
+        (  0.5*stub_width+stub_gap_width, stub_length + stub_gap_length ),
+        (  0.5*stub_width+stub_gap_width, box_gap_width                 ),
+        (  0.5*stub_width               , box_gap_width                 ),
+        (  0.5*stub_width               , stub_length                   ),
+        (  -0.5*stub_width              , stub_length                   ),
+        (  -0.5*stub_width              , box_gap_width                 ),
+    ]
+    TP.add_polygon(polpoints)
+    TP = pg.union(TP, by_layer = False, layer = 4)
+    qp(TP)
+
+    for center in point_pos:
+        tp = TPs.add_ref( TP )
+        tp.xmin = center[0] - 0.5*box_width - box_gap_width
+        tp.ymin = center[1] - 0.5*box_length - box_gap_width
+
+    return TPs
+
+# def device_TestBoxes(point_pos = [(-1493.5, -1181.413), (-1493.5, -1831.408), (-1493.5, -1500.0), (-843.5, -1181.413), (-843.5, -1831.408), (-843.5, -1500.0)]):
+def device_TestBoxes(point_pos = [(-1743.5, -1231.413), (-1743.5, -1881.408), (-1743.5, -1550), (-1093.5, -1231.413), (-1093.5, -1881.408), (-1093.5, -1550)]):
+    TBXs = Device("TestBoxes")
+    TBX = Device("TestBox")
+    box_size = 45
+    box1 = pg.rectangle((box_size, box_size), layer = 1)
+    box2 = pg.copy_layer(box1, 1, 2)
+    TBX.add_ref(box1)
+    TBX.add_ref(box2)
+
+    for center in point_pos:
+        tbx = TBXs.add_ref( TBX )
+        tbx.center = center
+
+    return TBXs
+
 def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, side = False):
     Resonator = Device("resonator")
     
@@ -447,6 +515,50 @@ def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = Tru
         JJ.center = (0,0)
 
     return JJ
+
+def device_EBLine( width = 0.473 ):
+    EBLine=Device('EBLine')
+
+    finger_layer = 1
+    box_layer = 2
+
+    box_width = 2.7
+    box_finger_overlay = 0.27
+
+    finger_width_outer = 0.608
+    finger_length_outer = 10.8
+
+    finger_width_inner = width
+    finger_length_inner = 16.2
+
+    box = pg.rectangle((box_width, box_width), box_layer)
+    box.movex(-box.center[0])
+    box.add_port(name = 'out', midpoint = [0, box_finger_overlay], width = finger_width_outer, orientation = 270)
+
+    # finger
+    finger_outer = pg.rectangle((finger_width_outer, finger_length_outer), finger_layer)
+    finger_outer.movex(-finger_outer.center[0])
+    finger_outer.add_port(name = 'in', midpoint = [0, finger_length_outer], width = finger_width_outer, orientation = 90)
+    finger_outer.add_port(name = 'out', midpoint = [0, 0], width = finger_width_outer, orientation = 270)
+
+    finger_inner = pg.rectangle((finger_width_inner, finger_length_inner), finger_layer)
+    finger_inner.movex(-finger_inner.center[0])
+    finger_inner.add_port(name = 'in', midpoint = [0, finger_length_inner], width = finger_width_inner, orientation = 90)
+    finger_inner.add_port(name = 'out', midpoint = [0, 0], width = finger_width_inner, orientation = 270)
+
+    box_up = EBLine.add_ref( box )
+    box_down = EBLine.add_ref( box )    
+    finger_outer_up = EBLine.add_ref( finger_outer )
+    finger_outer_down = EBLine.add_ref( finger_outer )
+    finger_inner = EBLine.add_ref( finger_inner )
+
+    finger_outer_up.connect(port = 'in', destination = box_up.ports['out'])
+    finger_inner.connect(port = 'in', destination = finger_outer.ports['out'])
+    finger_outer_down.connect(port = 'in', destination = finger_inner.ports['out'])
+    box_down.connect(port = 'out', destination = finger_outer_down.ports['out'])
+
+    EBLine.center = (0,0)
+    return EBLine
 
 def device_EBmarkers(marker_pos = [(0,0),(0,38400),(-19200,-28800),(38400,0), (0,-38400),(-19200,-38400),(-38400,0)],layer = 3):
     EBmarkers = Device("EBmarkers")
