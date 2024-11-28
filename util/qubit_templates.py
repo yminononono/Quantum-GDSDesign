@@ -323,7 +323,7 @@ def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = Tru
     finger_layer = 1
     box_layer = 2
 
-    if JJtype == "manhattan" and bandage:
+    if (JJtype == "mh" or JJtype == "manhattan") and bandage:
         box_finger_overlay_outer = 0.68
         box_finger_overlay_inner = 0.18
 
@@ -402,7 +402,7 @@ def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = Tru
             JJ.add_ref( pg.copy(JJ).movex(-10) )
         JJ.center = (0,0)
 
-    elif JJtype == "manhattan" and not bandage:
+    elif (JJtype == "mh" or JJtype == "manhattan") and not bandage:
         pad_box_width = 18
         pad_box_length = 10
         pad_triangle_length = 16
@@ -451,7 +451,7 @@ def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = Tru
         JJ.add_ref( pg.copy(JJ_half).mirror(p1 = (-5, -18), p2 = (5, -18)) ) 
         JJ.center = (0,0)
 
-    if JJtype == "dolan" and bandage:
+    if (JJtype == "dl" or JJtype == "dolan") and bandage:
         finger_width = 0.2
         finger_length = 1.5
 
@@ -521,7 +521,7 @@ def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = Tru
             JJ.add_ref( pg.copy(JJ).movex(-10) )
         JJ.center = (0,0)
 
-    if JJtype == "dolan" and not bandage:
+    if (JJtype == "dl" or JJtype == "dolan") and not bandage:
         finger_width = 0.2
         finger_length = 1.5
 
