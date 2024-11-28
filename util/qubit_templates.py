@@ -71,6 +71,46 @@ def device_FeedLine():
     FL.add_ref(D3)
     return FL
 
+def device_DCLine():
+    DC = Device("DCLine")
+    LP_in = DC.add_ref( device_LaunchPad() )
+    LP_in.move((1950, -1300))
+
+    dcline_radius = 100
+    dcline_width = 20
+    dcline_gap_width = 5.5
+
+    P = Path()
+    left_turn = pp.arc(radius = dcline_radius, angle = 90)
+    right_turn = pp.arc(radius = dcline_radius, angle = -90)
+    straight1 = pp.straight(length = 235)
+    straight2 = pp.straight(length = 805)
+    straight3 = pp.straight(length = 2973)
+    straight4 = pp.straight(length = 2960)
+
+    P.append([
+        straight1,
+        left_turn,
+        straight2,
+        right_turn,
+        straight3,
+        right_turn,
+        straight4,
+    ])
+
+    X = CrossSection()
+    X.add(width=dcline_width, offset = 0., layer = 1)
+    X.add(width=11, offset = 0.5*dcline_width + dcline_gap_width, layer = 4)
+    X.add(width=11, offset = -0.5*dcline_width - dcline_gap_width, layer = 4)
+
+    DCLine_device = P.extrude(X)
+    DCLine_device.add_port(name = 'out', midpoint = [0., 0.], width = dcline_width, orientation = 180)
+
+    DCLine_device = DC.add_ref( DCLine_device )
+    DCLine_device.connect(port = 'out', destination = LP_in.ports['out'])
+
+    return DC
+
 def device_CornerPoints(point_pos = [(2150,2150),(-2150,2150),(-2150,-2150),(2150,-2150)]):
     CP = Device("CornerPoints")
     box_width = 10
@@ -82,8 +122,12 @@ def device_CornerPoints(point_pos = [(2150,2150),(-2150,2150),(-2150,-2150),(215
         cp.center = center
     return CP
 
-# def device_TestAreas(point_pos = [(-1493.5, -1181.413), (-1493.5, -1831.408), (-843.5, -1181.413), (-843.5, -1831.408)]):
-def device_TestAreas(point_pos = [(-1743.5, -1231.413), (-1743.5, -1881.408), (-1093.5, -1231.413), (-1093.5, -1881.408)]):
+def device_TestAreas(DCLine = False):
+
+    if DCLine:
+        point_pos = [(-1493.5, -1181.413), (-1493.5, -1831.408), (-843.5, -1181.413), (-843.5, -1831.408)]
+    else:
+        point_pos = [(-1743.5, -1231.413), (-1743.5, -1881.408), (-1093.5, -1231.413), (-1093.5, -1881.408)]
 
     TPs = Device("TestPoints")
     TP = Device("TestPoint")    
@@ -123,8 +167,13 @@ def device_TestAreas(point_pos = [(-1743.5, -1231.413), (-1743.5, -1881.408), (-
 
     return TPs
 
-# def device_TestBoxes(point_pos = [(-1493.5, -1181.413), (-1493.5, -1831.408), (-1493.5, -1500.0), (-843.5, -1181.413), (-843.5, -1831.408), (-843.5, -1500.0)]):
-def device_TestBoxes(point_pos = [(-1743.5, -1231.413), (-1743.5, -1881.408), (-1743.5, -1550), (-1093.5, -1231.413), (-1093.5, -1881.408), (-1093.5, -1550)]):
+def device_TestBoxes(DCLine = False):
+
+    if DCLine:
+        point_pos = [(-1493.5, -1181.413), (-1493.5, -1831.408), (-1493.5, -1500.0), (-843.5, -1181.413), (-843.5, -1831.408), (-843.5, -1500.0)]
+    else:
+        point_pos = [(-1743.5, -1231.413), (-1743.5, -1881.408), (-1743.5, -1550), (-1093.5, -1231.413), (-1093.5, -1881.408), (-1093.5, -1550)]
+
     TBXs = Device("TestBoxes")
     TBX = Device("TestBox")
     box_size = 45
