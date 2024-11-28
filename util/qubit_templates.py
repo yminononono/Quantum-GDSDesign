@@ -188,7 +188,7 @@ def device_TestBoxes(DCLine = False):
 
     return TBXs
 
-def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, side = False):
+def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, side = False, mirror = False, entangle = False):
     Resonator = Device("resonator")
     
     resonatorgap_width = 6
@@ -262,7 +262,10 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
     cap_length = 10
     stub_width = resonator_width
     stub_length = 2*resonator_width
-    cap = pg.tee(size = (cap_width,cap_length), stub_size = (stub_width,stub_length), taper_type = 'fillet', layer = 0)
+    cap = pg.tee(size = (cap_width,cap_length), stub_size = (stub_width,stub_length), taper_type = 'fillet', layer = 4)
+    if entangle:
+        cap_entangle = pg.copy( cap )
+        cap_entangle.rotate(180)
     line = pg.bbox([(-0.5*stub_width, -pad_length),(0.5*stub_width, 0)])
     cap = pg.boolean(cap, line, 'or', layer = 4)
 
@@ -275,15 +278,23 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
 
     cap_qubit_down.ymin = cap.ymax + cap_gap1
     cap_qubit_up.ymin = cap_qubit_down.ymax + cap_gap2
-
+    if entangle:
+        cap_entangle.ymin = cap_qubit_up.ymax + cap_gap1
     # Subtract from pad
     pad = pg.bbox([(-0.5*pad_width, -0.5*pad_length),(0.5*pad_width, 0.5*pad_length)])
     pad.movey(cap_length + cap_gap1 + cap_length2 + 0.5*cap_gap2)
     pad = pg.boolean(pad, cap, 'not', layer = 4)
     pad = pg.boolean(pad, cap_qubit_up, 'not', layer = 4)    
     pad = pg.boolean(pad, cap_qubit_down, 'not', layer = 4)        
+    if entangle:
+        pad = pg.boolean(pad, cap_entangle, 'not', layer = 4)        
 
-    pad.add_port(name = 'out', midpoint = [0., -stub_width], width = stub_width, orientation = 270)
+    # pad.add_port(name = 'out', midpoint = [0., -stub_width], width = stub_width, orientation = 270)
+    pad.add_port(name = 'out', midpoint = [0., -cap_length], width = stub_width, orientation = 270)
+    pad.add_port(name = 'entangle', midpoint = [0., 2*(cap_length+cap_gap1+cap_length2)+cap_gap2+stub_length], width = stub_width, orientation = 90)
+
+    # qp(pad)
+
 
     print(f"Length : {P.length()} [um]")
 
@@ -297,6 +308,11 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
     waveguide_device = Resonator.add_ref(waveguide_device)
 
     pad.connect(port = 'out', destination = waveguide_device.ports['out'])
+
+    # qp(Resonator)
+
+    if mirror: # flip at pad center
+       Resonator.mirror(p1 = (-10, pad.center[1]), p2 = (10, pad.center[1]) )
 
     return Resonator
 
