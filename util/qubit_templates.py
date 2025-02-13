@@ -11,6 +11,7 @@ import phidl.routing as pr
 import phidl.path as pp
 
 finger_layer = 1
+box_layer = 2
 
 def device_Wafer(inch = 4):
     wafer = Device('wafer')
@@ -318,13 +319,11 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
 
     return Resonator
 
-def device_JJ( width = 0.135, bridge_width_var = 1.0, finger_width_var = 0.2, JJtype = "manhattan", squid = False, bandage = True):
+def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "manhattan", squid = False, bandage = True):
     JJ=Device('JJ')
     JJ_half=Device('JJ_half')
 
-    finger_layer = 1
-    box_layer = 2
-
+    
     if (JJtype == "mh" or JJtype == "manhattan") and bandage:
         box_finger_overlay_outer = 0.68
         box_finger_overlay_inner = 0.18
@@ -525,31 +524,20 @@ def device_JJ( width = 0.135, bridge_width_var = 1.0, finger_width_var = 0.2, JJ
 
     if (JJtype == "dl" or JJtype == "dolan") and not bandage:
 
-        finger_up_width = finger_width_var
-        finger_up_length = 10.0
-        finger_down_width = 0.3
-        finger_down_length = 10.0
+        JJ_finger_up_width = finger_width
+        JJ_bridge_width = bridge_width
 
-        pad_box_width = 2.0
-        pad_box_length = 10
-        pad_box_gap = 4.0
+        finger_up = pg.bbox([(-0.5*JJ_finger_up_width, 0), (0.5*JJ_finger_up_width, JJ_finger_up_length)], JJ_finger_layer)
+        finger_up.movey( 0.5*JJ_bridge_width )
+        finger_down = pg.bbox([(-0.5*JJ_finger_down_width, -JJ_finger_down_length), (0.5*JJ_finger_down_width, 0)], JJ_finger_layer)
+        finger_down.movey( -0.5*JJ_bridge_width )
 
-        taper_width1 = 10
-        taper_width2 = 40
-        taper_length = 100
-        taper_gap = 10
-
-        finger_up = pg.bbox([(-0.5*finger_up_width, 0), (0.5*finger_up_width, finger_up_length)], finger_layer)
-        finger_up.movey( 0.5*bridge_width_var )
-        finger_down = pg.bbox([(-0.5*finger_down_width, -finger_down_length), (0.5*finger_down_width, 0)], finger_layer)
-        finger_down.movey( -0.5*bridge_width_var )
-
-        pad_box = pg.bbox([(-0.5*pad_box_width, 0), (0.5*pad_box_width, pad_box_length)], finger_layer)
-        pad_box.movey(0.5*pad_box_gap)
+        pad_box = pg.bbox([(-0.5*JJ_pad_box_width, 0), (0.5*JJ_pad_box_width, JJ_pad_box_length)], JJ_finger_layer)
+        pad_box.movey(0.5*JJ_pad_box_gap)
         
-        taper = pg.taper(length = taper_length, width1 = taper_width1, width2 = taper_width2, port = None, layer = finger_layer)
+        taper = pg.taper(length = JJ_taper_length, width1 = JJ_taper_width1, width2 = JJ_taper_width2, port = None, layer = JJ_finger_layer)
         taper.rotate(90)
-        taper.movey( 0.5*taper_gap )
+        taper.movey( 0.5*JJ_taper_gap )
 
         finger_up = JJ_half.add_ref( finger_up )
         finger_down = JJ_half.add_ref( finger_down )
@@ -628,8 +616,6 @@ def device_JJ( width = 0.135, bridge_width_var = 1.0, finger_width_var = 0.2, JJ
 def device_EBLine( width = 0.473 ):
     EBLine=Device('EBLine')
 
-    box_layer = 2
-
     box_width = 2.7
     box_finger_overlay = 0.27
 
@@ -707,10 +693,8 @@ def device_EBmarkers(marker_pos = [(0,0),(0,38400),(-19200,-28800),(38400,0), (0
     return EBmarkers
 
 
-def device_DicingMarkers(layer = 3):
+def device_DicingMarkers(width = 100, length = 400, layer = 3):
     DicingMarkers = Device("DicingMarkers")
-    width = 100
-    length = 400
     tmp1 = pg.bbox([(-0.5*width,-0.5*length), (0.5*width,0.5*length)])
     tmp2 = pg.bbox([(-0.5*length,-0.5*width), (0.5*length,0.5*width)])    
     marker = pg.boolean(tmp1, tmp2, 'or', layer = layer)

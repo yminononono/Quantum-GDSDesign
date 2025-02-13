@@ -20,7 +20,8 @@ $ conda config --set channel_priority strict
 $ conda create -n phidl python=3.11 
 $ conda activate phidl
 $ conda install phidl
-$ conda install matplotlib 
+$ conda install matplotlib
+$ conda install pyyaml
 ```
 
 ## Functions
