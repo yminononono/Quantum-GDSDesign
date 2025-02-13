@@ -10,6 +10,8 @@ import phidl.geometry as pg
 import phidl.routing as pr
 import phidl.path as pp
 
+finger_layer = 1
+
 def device_Wafer(inch = 4):
     wafer = Device('wafer')
     wafer_radius = 0.5 * inch * 25.4 * 1e3 # inch to um
@@ -316,7 +318,7 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
 
     return Resonator
 
-def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = True):
+def device_JJ( width = 0.135, bridge_width_var = 1.0, finger_width_var = 0.2, JJtype = "manhattan", squid = False, bandage = True):
     JJ=Device('JJ')
     JJ_half=Device('JJ_half')
 
@@ -452,10 +454,10 @@ def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = Tru
         JJ.center = (0,0)
 
     if (JJtype == "dl" or JJtype == "dolan") and bandage:
-        finger_width = 0.2
+        finger_width = finger_width_var
         finger_length = 1.5
 
-        bridge_width = width
+        bridge_width = bridge_width_var
         bridge_length = 2.0
 
         bridge_finger_overlay = 0.8
@@ -522,69 +524,110 @@ def device_JJ( width = 0.135, JJtype = "manhattan", squid = False, bandage = Tru
         JJ.center = (0,0)
 
     if (JJtype == "dl" or JJtype == "dolan") and not bandage:
-        finger_width = 0.2
-        finger_length = 1.5
 
-        bridge_width = width
-        bridge_length = 2.0
+        finger_up_width = finger_width_var
+        finger_up_length = 10.0
+        finger_down_width = 0.3
+        finger_down_length = 10.0
 
-        bridge_finger_overlay = 0.8
-        bridge_pad_overlay = 0.42
-
-        pad_box_width = 18
+        pad_box_width = 2.0
         pad_box_length = 10
-        pad_triangle_length = 16
-        pad_rounding_radius = 2
-        pad_finger_dist = 4.5
+        pad_box_gap = 4.0
 
-        pad_inner_width = 2
-        pad_inner_length = 16
+        taper_width1 = 10
+        taper_width2 = 40
+        taper_length = 100
+        taper_gap = 10
 
-        # make pad
-        pad_box = pg.rectangle((pad_box_width, pad_box_length), finger_layer)
-        pad_box.movex(-pad_box.center[0])
-        pad_box.add_port(name = 'out', midpoint = [0, 0], width = pad_box_width, orientation = 270)
-        pad_triangle = pg.taper(length = pad_triangle_length, width1 = pad_box_width, width2 = 0, port = None, layer = finger_layer)
-        pad_triangle.rotate(-90)
-        pad_outer = pg.boolean(A = pad_box, B = pad_triangle, operation = 'or',  precision = 1e-6, num_divisions = [1,1], layer = finger_layer)
-        pad_outer.add_port(name = 'out', midpoint = [0, -(pad_triangle_length + pad_finger_dist)], width = pad_box_width, orientation = 270)
-        pad_outer.polygons[0].fillet( pad_rounding_radius )
+        finger_up = pg.bbox([(-0.5*finger_up_width, 0), (0.5*finger_up_width, finger_up_length)], finger_layer)
+        finger_up.movey( 0.5*bridge_width_var )
+        finger_down = pg.bbox([(-0.5*finger_down_width, -finger_down_length), (0.5*finger_down_width, 0)], finger_layer)
+        finger_down.movey( -0.5*bridge_width_var )
+
+        pad_box = pg.bbox([(-0.5*pad_box_width, 0), (0.5*pad_box_width, pad_box_length)], finger_layer)
+        pad_box.movey(0.5*pad_box_gap)
         
-        pad_inner = pg.rectangle((pad_inner_width, pad_inner_length), finger_layer)
-        pad_inner.add_port(name = 'out', midpoint = [0.5*pad_inner_width, 0], width = pad_inner_width, orientation = 270)
+        taper = pg.taper(length = taper_length, width1 = taper_width1, width2 = taper_width2, port = None, layer = finger_layer)
+        taper.rotate(90)
+        taper.movey( 0.5*taper_gap )
 
-        finger = pg.bbox([(-0.5*finger_width, -finger_length), (0.5*finger_width, 0)], finger_layer)
-        finger.add_port(name = 'finger_bridge', midpoint = [0, 0], width = finger_width, orientation = 90)
-        finger.add_port(name = 'finger_pad', midpoint = [0, -finger_length], width = finger_width, orientation = 270)
-
-        bridge = pg.rectangle((bridge_width, bridge_length), box_layer)
-        bridge.add_port(name = 'bridge_finger', midpoint = [0.5*bridge_width, bridge_finger_overlay] , width = finger_width, orientation = 270)
-        bridge.add_port(name = 'bridge_pad', midpoint = [0.5*bridge_width, bridge_length - bridge_pad_overlay] , width = finger_width, orientation = 90)        
-
-        finger = JJ_half.add_ref( finger )
-        bridge = JJ_half.add_ref( bridge )
-        pad_inner_up = JJ_half.add_ref( pad_inner )
-        pad_inner_down = JJ_half.add_ref( pad_inner )         
-        pad_outer_up = JJ_half.add_ref( pad_outer )
-        pad_outer_down = JJ_half.add_ref( pad_outer ) 
-
-        bridge.connect(port = 'bridge_finger', destination = finger.ports['finger_bridge'])
-        pad_inner_up.connect(port = 'out', destination = bridge.ports['bridge_pad'])
-        pad_inner_down.connect(port = 'out', destination = finger.ports['finger_pad'])
-        pad_outer_up.connect(port = 'out', destination = pad_inner_up.ports['out'])
-        pad_outer_down.connect(port = 'out', destination = pad_inner_down.ports['out'])                             
-
+        finger_up = JJ_half.add_ref( finger_up )
+        finger_down = JJ_half.add_ref( finger_down )
+        pad_box_up = JJ_half.add_ref( pad_box )        
+        pad_box_down = JJ_half.add_ref( pg.copy(pad_box).mirror(p1 = (-5, 0), p2 = (5, 0)) )
+        
         JJ.add_ref( JJ_half )
         if squid:
             JJ.add_ref( pg.copy(JJ).movex(-10) )
         JJ.center = (0,0)
+
+        if squid:
+            JJ.add_ref(taper)
+            JJ.add_ref( pg.copy(taper).mirror(p1 = (-5, 0), p2 = (5, 0)) )
+
+        ### Old design
+        # finger_width = finger_width_var
+        # finger_length = 1.5
+
+        # bridge_width = bridge_width_var
+        # bridge_length = 2.0
+
+        # bridge_finger_overlay = 0.8
+        # bridge_pad_overlay = 0.42
+
+        # pad_box_width = 18
+        # pad_box_length = 10
+        # pad_triangle_length = 16
+        # pad_rounding_radius = 2
+        # pad_finger_dist = 4.5
+
+        # pad_inner_width = 2
+        # pad_inner_length = 16
+
+        # # make pad
+        # pad_box = pg.rectangle((pad_box_width, pad_box_length), finger_layer)
+        # pad_box.movex(-pad_box.center[0])
+        # pad_box.add_port(name = 'out', midpoint = [0, 0], width = pad_box_width, orientation = 270)
+        # pad_triangle = pg.taper(length = pad_triangle_length, width1 = pad_box_width, width2 = 0, port = None, layer = finger_layer)
+        # pad_triangle.rotate(-90)
+        # pad_outer = pg.boolean(A = pad_box, B = pad_triangle, operation = 'or',  precision = 1e-6, num_divisions = [1,1], layer = finger_layer)
+        # pad_outer.add_port(name = 'out', midpoint = [0, -(pad_triangle_length + pad_finger_dist)], width = pad_box_width, orientation = 270)
+        # pad_outer.polygons[0].fillet( pad_rounding_radius )
+        
+        # pad_inner = pg.rectangle((pad_inner_width, pad_inner_length), finger_layer)
+        # pad_inner.add_port(name = 'out', midpoint = [0.5*pad_inner_width, 0], width = pad_inner_width, orientation = 270)
+
+        # finger = pg.bbox([(-0.5*finger_width, -finger_length), (0.5*finger_width, 0)], finger_layer)
+        # finger.add_port(name = 'finger_bridge', midpoint = [0, 0], width = finger_width, orientation = 90)
+        # finger.add_port(name = 'finger_pad', midpoint = [0, -finger_length], width = finger_width, orientation = 270)
+
+        # bridge = pg.rectangle((bridge_width, bridge_length), box_layer)
+        # bridge.add_port(name = 'bridge_finger', midpoint = [0.5*bridge_width, bridge_finger_overlay] , width = finger_width, orientation = 270)
+        # bridge.add_port(name = 'bridge_pad', midpoint = [0.5*bridge_width, bridge_length - bridge_pad_overlay] , width = finger_width, orientation = 90)        
+
+        # finger = JJ_half.add_ref( finger )
+        # bridge = JJ_half.add_ref( bridge )
+        # pad_inner_up = JJ_half.add_ref( pad_inner )
+        # pad_inner_down = JJ_half.add_ref( pad_inner )         
+        # pad_outer_up = JJ_half.add_ref( pad_outer )
+        # pad_outer_down = JJ_half.add_ref( pad_outer ) 
+
+        # bridge.connect(port = 'bridge_finger', destination = finger.ports['finger_bridge'])
+        # pad_inner_up.connect(port = 'out', destination = bridge.ports['bridge_pad'])
+        # pad_inner_down.connect(port = 'out', destination = finger.ports['finger_pad'])
+        # pad_outer_up.connect(port = 'out', destination = pad_inner_up.ports['out'])
+        # pad_outer_down.connect(port = 'out', destination = pad_inner_down.ports['out'])                             
+
+        # JJ.add_ref( JJ_half )
+        # if squid:
+        #     JJ.add_ref( pg.copy(JJ).movex(-10) )
+        # JJ.center = (0,0)
 
     return JJ
 
 def device_EBLine( width = 0.473 ):
     EBLine=Device('EBLine')
 
-    finger_layer = 1
     box_layer = 2
 
     box_width = 2.7
@@ -662,6 +705,18 @@ def device_EBmarkers(marker_pos = [(0,0),(0,38400),(-19200,-28800),(38400,0), (0
         marker = EBmarkers.add_ref(EBmarker)
         marker.center = marker_pos[ii]
     return EBmarkers
+
+
+def device_DicingMarkers(layer = 3):
+    DicingMarkers = Device("DicingMarkers")
+    width = 100
+    length = 400
+    tmp1 = pg.bbox([(-0.5*width,-0.5*length), (0.5*width,0.5*length)])
+    tmp2 = pg.bbox([(-0.5*length,-0.5*width), (0.5*length,0.5*width)])    
+    marker = pg.boolean(tmp1, tmp2, 'or', layer = layer)
+
+    DicingMarkers.add_ref(marker)
+    return DicingMarkers
 
 def device_Grid(inch = 4, n_gridline = 20):
     grid = Device("Grid")
