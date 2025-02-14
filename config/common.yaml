@@ -1,0 +1,87 @@
+Wafer:
+  layer: 21
+
+LaunchPad:
+  layer: 4
+  pad:
+    length: 300
+    width: 200
+    gap:
+      length: 400
+      width: 500
+  trace:
+    length: 200
+    width: 20
+    gap:
+      width: 11
+
+Frame:
+  layer: 25
+  width: 100
+  size: 4700
+
+DCLine:
+  radius: 100
+
+CornerPoint:
+  layer: 4
+  width: 10
+  gap:
+    width: 20
+  pos:
+    - [ 2150, 2150]
+    - [-2150, 2150]
+    - [-2150,-2150]
+    - [ 2150,-2150]
+
+Resonator:
+  layer: 4
+  width: 10
+  radius: 75
+  pad:
+    width: 700
+    length: 700
+  gap:
+    width: 6
+    
+
+TestPoint:
+  layer: 4
+  box:
+    width: 279
+    length: 135
+    gap:
+      width: 27
+  stub:
+    width: 18
+    length: 68.4
+    gap:
+      width: 18
+      length: 14.4  
+
+# EB line for testing shadow evaporation
+EBLine:
+    box:
+      layer: 2
+      width: 2.7
+      overlay: 0.27
+    finger:
+      layer: 1
+      inner: 
+        width: 0.473
+        length: 16.2    
+      outer:
+        width: 0.608
+        length: 10.8
+
+
+EBMarker:
+  layer: 3
+  pos: 
+    - [     0,      0]
+    - [     0,  38400]
+    - [-19200, -28800]
+    - [ 38400,      0]
+    - [     0, -38400]
+    - [-19200, -38400]
+    - [-38400,      0]

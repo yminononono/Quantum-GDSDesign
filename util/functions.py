@@ -1,5 +1,4 @@
 import yaml
-import qubit_templates
 
 # YAML 設定ファイルを読み込む関数
 def load_config(file_path):
@@ -8,7 +7,6 @@ def load_config(file_path):
 
     flat_data = flatten_dict(config)
     global_data = {f"{k}": v for k, v in flat_data.items()}
-    qubit_templates.__dict__.update(global_data)
 
     return global_data
 
