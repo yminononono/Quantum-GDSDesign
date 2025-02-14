@@ -64,6 +64,26 @@ def device_FeedLine():
     FL.add_ref(D3)
     return FL
 
+def device_FeedLine_Tc():
+    # make 2 pads
+    FL = Device("feedline")
+    FeedLine_length = 2200
+    LP_in = pg.copy(device_LaunchPad())
+    LP_in.xmin = 0
+    LP_in.rotate(90).movey(0.5*FeedLine_length)    
+    LP_out = pg.copy(device_LaunchPad())
+    LP_out.xmin = 0
+    LP_out.rotate(-90).movey(-0.5*FeedLine_length)
+    FL.add_ref(LP_in)
+    FL.add_ref(LP_out)
+
+    X = CrossSection()
+    X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+    X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+    D3 = pr.route_smooth(LP_in.ports['out'], LP_out.ports['out'], width = X)
+    FL.add_ref(D3)
+    return FL
+
 def device_DCLine():
     DC = Device("DCLine")
     LP_in = DC.add_ref( device_LaunchPad() )
@@ -168,7 +188,7 @@ def device_TestBoxes(DCLine = False):
 
     return TBXs
 
-def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, side = False, mirror = False, entangle = False):
+def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, transmon = True, side = False, mirror = False, entangle = False):
     Resonator = Device("resonator")
 
     P = Path()
@@ -229,63 +249,69 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
     waveguide_device.rotate(90)
     waveguide_device.movex(-(resonator_straight1+Resonator_radius))
 
-    # capacitor (resonator -> qubit)
-    cap_gap1 = 15
-    cap_width = 50
-    cap_length = 10
-    stub_width = Resonator_width
-    stub_length = 2*Resonator_width
-    cap = pg.tee(size = (cap_width,cap_length), stub_size = (stub_width,stub_length), taper_type = 'fillet', layer = 4)
-    if entangle:
-        cap_entangle = pg.copy( cap )
-        cap_entangle.rotate(180)
-    line = pg.bbox([(-0.5*stub_width, -Resonator_pad_length),(0.5*stub_width, 0)])
-    cap = pg.boolean(cap, line, 'or', layer = 4)
+    if transmon:
+        # capacitor (resonator -> qubit)
+        cap_gap1 = 15
+        cap_width = 50
+        cap_length = 10
+        stub_width = Resonator_width
+        stub_length = 2*Resonator_width
+        cap = pg.tee(size = (cap_width,cap_length), stub_size = (stub_width,stub_length), taper_type = 'fillet', layer = 4)
+        if entangle:
+            cap_entangle = pg.copy( cap )
+            cap_entangle.rotate(180)
+        line = pg.bbox([(-0.5*stub_width, -Resonator_pad_length),(0.5*stub_width, 0)])
+        cap = pg.boolean(cap, line, 'or', layer = 4)
 
-    # capacitor (qubit)
-    cap_gap2 = 16
-    cap_width2 = 540
-    cap_length2 = 50
-    cap_qubit_up = pg.compass_multi(size = (cap_width2, cap_length2), ports = {'N':3,'S':3}, layer = 0)
-    cap_qubit_down = pg.compass_multi(size = (cap_width2, cap_length2), ports = {'N':3,'S':3}, layer = 0)
+        # capacitor (qubit)
+        cap_gap2 = 16
+        cap_width2 = 540
+        cap_length2 = 50
+        cap_qubit_up = pg.compass_multi(size = (cap_width2, cap_length2), ports = {'N':3,'S':3}, layer = 0)
+        cap_qubit_down = pg.compass_multi(size = (cap_width2, cap_length2), ports = {'N':3,'S':3}, layer = 0)
 
-    cap_qubit_down.ymin = cap.ymax + cap_gap1
-    cap_qubit_up.ymin = cap_qubit_down.ymax + cap_gap2
-    if entangle:
-        cap_entangle.ymin = cap_qubit_up.ymax + cap_gap1
-    # Subtract from pad
-    pad = pg.bbox([(-0.5*Resonator_pad_width, -0.5*Resonator_pad_length),(0.5*Resonator_pad_width, 0.5*Resonator_pad_length)])
-    pad.movey(cap_length + cap_gap1 + cap_length2 + 0.5*cap_gap2)
-    pad = pg.boolean(pad, cap, 'not', layer = 4)
-    pad = pg.boolean(pad, cap_qubit_up, 'not', layer = 4)    
-    pad = pg.boolean(pad, cap_qubit_down, 'not', layer = 4)        
-    if entangle:
-        pad = pg.boolean(pad, cap_entangle, 'not', layer = 4)        
+        cap_qubit_down.ymin = cap.ymax + cap_gap1
+        cap_qubit_up.ymin = cap_qubit_down.ymax + cap_gap2
+        if entangle:
+            cap_entangle.ymin = cap_qubit_up.ymax + cap_gap1
+        # Subtract from pad
+        pad = pg.bbox([(-0.5*Resonator_pad_width, -0.5*Resonator_pad_length),(0.5*Resonator_pad_width, 0.5*Resonator_pad_length)])
+        pad.movey(cap_length + cap_gap1 + cap_length2 + 0.5*cap_gap2)
+        pad = pg.boolean(pad, cap, 'not', layer = 4)
+        pad = pg.boolean(pad, cap_qubit_up, 'not', layer = 4)    
+        pad = pg.boolean(pad, cap_qubit_down, 'not', layer = 4)        
+        if entangle:
+            pad = pg.boolean(pad, cap_entangle, 'not', layer = 4)        
 
-    # pad.add_port(name = 'out', midpoint = [0., -stub_width], width = stub_width, orientation = 270)
-    pad.add_port(name = 'out', midpoint = [0., -cap_length], width = stub_width, orientation = 270)
-    pad.add_port(name = 'entangle', midpoint = [0., 2*(cap_length+cap_gap1+cap_length2)+cap_gap2+stub_length], width = stub_width, orientation = 90)
+        # pad.add_port(name = 'out', midpoint = [0., -stub_width], width = stub_width, orientation = 270)
+        pad.add_port(name = 'out', midpoint = [0., -cap_length], width = stub_width, orientation = 270)
+        pad.add_port(name = 'entangle', midpoint = [0., 2*(cap_length+cap_gap1+cap_length2)+cap_gap2+stub_length], width = stub_width, orientation = 90)
 
-    # qp(pad)
+        # qp(pad)
 
 
-    print(f"Length : {P.length()} [um]")
+        print(f"Length : {P.length()} [um]")
 
-    s, K = P.curvature()
-    plt.plot(s, K, ".-")
-    plt.xlabel("Position along curve (arc length)")
-    plt.ylabel("Curvature")
+        s, K = P.curvature()
+        plt.plot(s, K, ".-")
+        plt.xlabel("Position along curve (arc length)")
+        plt.ylabel("Curvature")
 
-    # Quickplot the resulting Device
-    pad = Resonator.add_ref(pad)
-    waveguide_device = Resonator.add_ref(waveguide_device)
+        # Quickplot the resulting Device
+        pad = Resonator.add_ref(pad)
+        waveguide_device = Resonator.add_ref(waveguide_device)
 
-    pad.connect(port = 'out', destination = waveguide_device.ports['out'])
+        pad.connect(port = 'out', destination = waveguide_device.ports['out'])
 
-    # qp(Resonator)
+        # qp(Resonator)
 
-    if mirror: # flip at pad center
-       Resonator.mirror(p1 = (-10, pad.center[1]), p2 = (10, pad.center[1]) )
+        if mirror: # flip at pad center
+            Resonator.mirror(p1 = (-10, pad.center[1]), p2 = (10, pad.center[1]) )
+    
+    else:
+        Resonator.add_ref(waveguide_device)
+        if mirror: # flip at waveguide center
+            Resonator.mirror(p1 = (-10, Resonator.center[1]), p2 = (10, Resonator.center[1]) )
 
     return Resonator
 
@@ -666,15 +692,24 @@ def device_DicingMarkers(width = 100, length = 400, layer = 3):
 def device_Grid(inch = 4, n_gridline = 20):
     grid = Device("Grid")
     wafer_radius = 0.5 * inch * 25.4 * 1e3 # inch to um
-    device_list = [pg.rectangle(size = (100, 2*wafer_radius), layer = 25) for i in range(n_gridline)]
-    grid = pg.grid(device_list,
-                spacing = (4800,0),
+    device_list_perp = [pg.rectangle(size = (Frame_width, 2*wafer_radius), layer = 25) for i in range(n_gridline)]
+    device_list_horiz = [pg.rectangle(size = (2*wafer_radius, Frame_width), layer = 25) for i in range(n_gridline)]
+    grid_perp = pg.grid(device_list_perp,
+                spacing = (Frame_width + Frame_size_width, 0),
                 separation = False,
                 shape = (n_gridline,1))
-    grid.center = (0, 0)
+    grid_perp.center = (0, 0)
+    grid_horiz = pg.grid(device_list_horiz,
+                spacing = (0, Frame_width + Frame_size_height),
+                separation = False,
+                shape = (1, n_gridline)) 
+    grid_horiz.center = (0, 0)
     circle = pg.circle(radius = wafer_radius, angle_resolution = 2.5, layer = 21)
     inv_circle = pg.invert(circle, border = 7000, precision = 1e-6, layer = 21)
-    grid = pg.boolean(A = grid, B = inv_circle, operation = 'not', precision = 1e-6,
+    grid_perp = pg.boolean(A = grid_perp, B = inv_circle, operation = 'not', precision = 1e-6,
                 num_divisions = [1,1], layer = 25)
-    grid.add_ref( pg.copy(grid).rotate(90) )
+    grid_horiz = pg.boolean(A = grid_horiz, B = inv_circle, operation = 'not', precision = 1e-6,
+                num_divisions = [1,1], layer = 25)    
+    grid.add_ref( grid_perp )
+    grid.add_ref( grid_horiz )    
     return grid

@@ -4,13 +4,13 @@ Wafer:
 LaunchPad:
   layer: 4
   pad:
-    length: 300
-    width: 200
+    length: 170
+    width: 320
     gap:
-      length: 400
-      width: 500
+      length: 340
+      width: 800
   trace:
-    length: 200
+    length: 570
     width: 20
     gap:
       width: 11
@@ -19,8 +19,8 @@ Frame:
   layer: 25
   width: 100
   size:
-    height: 4700
-    width: 4700
+    height: 4650
+    width: 2250
 
 DCLine:
   radius: 100
@@ -31,10 +31,10 @@ CornerPoint:
   gap:
     width: 20
   pos:
-    - [ 2150, 2150]
-    - [-2150, 2150]
-    - [-2150,-2150]
-    - [ 2150,-2150]
+    - [ 1000, 2200]
+    - [-1000, 2200]
+    - [-1000,-2200]
+    - [ 1000,-2200]
 
 Resonator:
   layer: 4
