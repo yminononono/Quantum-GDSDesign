@@ -315,12 +315,47 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
 
     return Resonator
 
-def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "manhattan", squid = False, bandage = True):
+def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "manhattan", squid = False, bandage = True, photolitho = False):
     JJ=Device('JJ')
     JJ_half=Device('JJ_half')
 
-    
-    if (JJtype == "mh" or JJtype == "manhattan") and bandage:
+    if (JJtype == "mh" or JJtype == "manhattan") and photolitho:
+
+        finger_width_outer1 = 4.0
+        finger_length_outer1 = 0.2*Pad_gap
+
+        finger_width_outer2 = 2.0
+        finger_length_outer2 = 0.2*Pad_gap
+
+        finger_width_inner = width
+        finger_length_inner = 0.2*Pad_gap
+
+        # finger
+        finger_outer1 = pg.rectangle((finger_width_outer1, finger_length_outer1), finger_layer)
+        finger_outer1.movex(-finger_outer1.center[0])
+        finger_outer1.add_port(name = 'out', midpoint = [0, 0], width = finger_width_outer1, orientation = 270)
+
+        finger_outer2 = pg.rectangle((finger_width_outer2, finger_length_outer2), finger_layer)
+        finger_outer2.movex(-finger_outer2.center[0])
+        finger_outer2.add_port(name = 'out', midpoint = [0, 0], width = finger_width_outer2, orientation = 270)
+        finger_outer2.add_port(name = 'in', midpoint = [0, finger_length_outer2], width = finger_width_outer2, orientation = 90)        
+
+        finger_inner = pg.rectangle((finger_width_inner, finger_length_inner), finger_layer)
+        finger_inner.movex(-finger_inner.center[0])
+        finger_inner.add_port(name = 'in', midpoint = [0, finger_length_inner], width = finger_width_inner, orientation = 90)
+
+        finger_outer1 = JJ_half.add_ref( finger_outer1 )
+        finger_outer2 = JJ_half.add_ref( finger_outer2 )
+        finger_inner = JJ_half.add_ref( finger_inner )
+
+        finger_outer2.connect(port = 'out', destination = finger_inner.ports['in'])
+        finger_outer1.connect(port = 'out', destination = finger_outer2.ports['in'])        
+
+        JJ.add_ref( JJ_half ).movey(-20)
+        JJ.add_ref( pg.copy(JJ_half).rotate(90) ).movex(20)
+
+    elif (JJtype == "mh" or JJtype == "manhattan") and bandage:
+
         box_finger_overlay_outer = 0.68
         box_finger_overlay_inner = 0.18
 
