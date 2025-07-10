@@ -321,38 +321,78 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
 
     if (JJtype == "mh" or JJtype == "manhattan") and photolitho:
 
-        finger_width_outer1 = 4.0
-        finger_length_outer1 = 0.2*Pad_gap
-
-        finger_width_outer2 = 2.0
-        finger_length_outer2 = 0.2*Pad_gap
-
+        finger_rounding_radius = 0.4
+        finger_width_outer = 2.0
+        finger_length_outer = 0.5*Pad_gap
         finger_width_inner = width
-        finger_length_inner = 0.2*Pad_gap
+        finger_length_inner = 0.5*Pad_gap
 
-        # finger
-        finger_outer1 = pg.rectangle((finger_width_outer1, finger_length_outer1), finger_layer)
-        finger_outer1.movex(-finger_outer1.center[0])
-        finger_outer1.add_port(name = 'out', midpoint = [0, 0], width = finger_width_outer1, orientation = 270)
-
-        finger_outer2 = pg.rectangle((finger_width_outer2, finger_length_outer2), finger_layer)
-        finger_outer2.movex(-finger_outer2.center[0])
-        finger_outer2.add_port(name = 'out', midpoint = [0, 0], width = finger_width_outer2, orientation = 270)
-        finger_outer2.add_port(name = 'in', midpoint = [0, finger_length_outer2], width = finger_width_outer2, orientation = 90)        
-
+        # make finger
+        finger_outer = pg.rectangle((finger_width_outer, finger_length_outer), finger_layer)
+        # finger_outer.polygons[0].fillet( finger_rounding_radius )
+        finger_outer.movex(-finger_outer.center[0])
+        finger_outer.add_port(name = 'out', midpoint = [0, finger_rounding_radius], width = finger_width_outer, orientation = 270)
+        
         finger_inner = pg.rectangle((finger_width_inner, finger_length_inner), finger_layer)
         finger_inner.movex(-finger_inner.center[0])
         finger_inner.add_port(name = 'in', midpoint = [0, finger_length_inner], width = finger_width_inner, orientation = 90)
 
-        finger_outer1 = JJ_half.add_ref( finger_outer1 )
-        finger_outer2 = JJ_half.add_ref( finger_outer2 )
-        finger_inner = JJ_half.add_ref( finger_inner )
+        finger_inner1 = JJ_half.add_ref( finger_inner ).rotate(45).movey(-0.2/math.sqrt(2)*finger_length_inner)
+        finger_outer1 = JJ_half.add_ref( finger_outer )
+        finger_outer1.connect(port = 'out', destination = finger_inner1.ports['in'])
+        
+        if squid:
+            finger_inner2 = JJ_half.add_ref( finger_inner ).rotate(-45).movey(-0.2/math.sqrt(2)*finger_length_inner)
+            finger_outer2 = JJ_half.add_ref( finger_outer )
+            finger_outer2.connect(port = 'out', destination = finger_inner2.ports['in'])
 
-        finger_outer2.connect(port = 'out', destination = finger_inner.ports['in'])
-        finger_outer1.connect(port = 'out', destination = finger_outer2.ports['in'])        
+        JJ_half = pg.union(JJ_half)
+        JJ_half.polygons[0].fillet( finger_rounding_radius )
+        JJ_half = pg.union(JJ_half)
 
-        JJ.add_ref( JJ_half ).movey(-20)
-        JJ.add_ref( pg.copy(JJ_half).rotate(90) ).movex(20)
+        JJ.add_ref( JJ_half )
+        JJ.add_ref( pg.copy(JJ_half).mirror(p1 = (-5, 0), p2 = (5, 0)) ) 
+        JJ.center = (0,0)
+
+        # Remove corner in JJ
+        JJ = pg.union(JJ)
+        JJ.polygons[0].fillet( 0.05 )
+        JJ = pg.union(JJ)        
+        
+
+
+        # finger_width_outer1 = 4.0
+        # finger_length_outer1 = 0.2*Pad_gap
+
+        # finger_width_outer2 = 2.0
+        # finger_length_outer2 = 0.2*Pad_gap
+
+        # finger_width_inner = width
+        # finger_length_inner = 0.2*Pad_gap
+
+        # # finger
+        # finger_outer1 = pg.rectangle((finger_width_outer1, finger_length_outer1), finger_layer)
+        # finger_outer1.movex(-finger_outer1.center[0])
+        # finger_outer1.add_port(name = 'out', midpoint = [0, 0], width = finger_width_outer1, orientation = 270)
+
+        # finger_outer2 = pg.rectangle((finger_width_outer2, finger_length_outer2), finger_layer)
+        # finger_outer2.movex(-finger_outer2.center[0])
+        # finger_outer2.add_port(name = 'out', midpoint = [0, 0], width = finger_width_outer2, orientation = 270)
+        # finger_outer2.add_port(name = 'in', midpoint = [0, finger_length_outer2], width = finger_width_outer2, orientation = 90)        
+
+        # finger_inner = pg.rectangle((finger_width_inner, finger_length_inner), finger_layer)
+        # finger_inner.movex(-finger_inner.center[0])
+        # finger_inner.add_port(name = 'in', midpoint = [0, finger_length_inner], width = finger_width_inner, orientation = 90)
+
+        # finger_outer1 = JJ_half.add_ref( finger_outer1 )
+        # finger_outer2 = JJ_half.add_ref( finger_outer2 )
+        # finger_inner = JJ_half.add_ref( finger_inner )
+
+        # finger_outer2.connect(port = 'out', destination = finger_inner.ports['in'])
+        # finger_outer1.connect(port = 'out', destination = finger_outer2.ports['in'])        
+
+        # JJ.add_ref( JJ_half ).movey(-20)
+        # JJ.add_ref( pg.copy(JJ_half).rotate(90) ).movex(20)
 
     elif (JJtype == "mh" or JJtype == "manhattan") and bandage:
 

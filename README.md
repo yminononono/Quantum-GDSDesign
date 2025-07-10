@@ -22,6 +22,7 @@ $ conda activate phidl
 $ conda install phidl
 $ conda install matplotlib
 $ conda install pyyaml
+$ conda install scipy
 ```
 
 ## Functions
