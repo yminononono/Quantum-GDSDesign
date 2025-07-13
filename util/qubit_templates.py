@@ -326,7 +326,7 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             finger_width_outer = 2.0
             finger_length_outer = 0.6*Pad_gap
             finger_width_inner = width
-            finger_length_inner = 0.5 * Pad_gap
+            finger_length_inner = 0.6*Pad_gap
 
             # make finger
             finger_outer = pg.rectangle((finger_width_outer, finger_length_outer), finger_layer)
@@ -338,14 +338,18 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             finger_inner.movex(-finger_inner.center[0])
             finger_inner.add_port(name = 'in', midpoint = [0, finger_length_inner], width = finger_width_inner, orientation = 90)
 
-            finger_inner1 = JJ_half.add_ref( finger_inner ).rotate(45).movey(-0.2/math.sqrt(2)*finger_length_inner*float(width/0.5))
+            finger_inner1 = JJ_half.add_ref( finger_inner ).rotate(45)
             finger_outer1 = JJ_half.add_ref( finger_outer )
-            finger_outer1.connect(port = 'out', destination = finger_inner1.ports['in'])
+            finger_outer1.center[0] = 0
+            finger_outer1.movex(-0.75/math.sqrt(2)*finger_length_inner)
+            finger_outer1.movey(+0.4/math.sqrt(2)*finger_length_inner)
+            JJ_half.movey(-0.1/math.sqrt(2)*finger_length_inner*float(width/0.5))
+            #finger_outer1.connect(port = 'out', destination = finger_inner1.ports['in'])
             
-            if squid:
-                finger_inner2 = JJ_half.add_ref( finger_inner ).rotate(-45).movey(-0.2/math.sqrt(2)*finger_length_inner)
-                finger_outer2 = JJ_half.add_ref( finger_outer )
-                finger_outer2.connect(port = 'out', destination = finger_inner2.ports['in'])
+            # if squid:
+            #     finger_inner2 = JJ_half.add_ref( finger_inner ).rotate(-45).movey(-0.2/math.sqrt(2)*finger_length_inner)
+            #     finger_outer2 = JJ_half.add_ref( finger_outer )
+            #     finger_outer2.connect(port = 'out', destination = finger_inner2.ports['in'])
 
             JJ_half = pg.union(JJ_half)
             JJ_half.polygons[0].fillet( finger_rounding_radius )
@@ -357,10 +361,12 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
 
             # Remove corner in JJ
             JJ = pg.union(JJ)
-            JJ.polygons[0].fillet( 0.05 )
+            JJ.polygons[0].fillet( JJ_rounding )
             JJ = pg.union(JJ)        
             
-
+            if squid:
+                JJ.add_ref( pg.copy(JJ).movex(-10) )
+            JJ.center = (0,0)
 
             # finger_width_outer1 = 4.0
             # finger_length_outer1 = 0.2*Pad_gap
