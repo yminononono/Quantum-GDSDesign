@@ -188,7 +188,7 @@ def device_TestBoxes(DCLine = False):
 
     return TBXs
 
-def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, transmon = True, side = False, mirror = False, entangle = False):
+def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, transmon = True, side = False, mirror = False, entangle = False, print_length = False, plot_curvature = False):
     Resonator = Device("resonator")
 
     P = Path()
@@ -289,14 +289,6 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
 
         # qp(pad)
 
-
-        print(f"Length : {P.length()} [um]")
-
-        s, K = P.curvature()
-        plt.plot(s, K, ".-")
-        plt.xlabel("Position along curve (arc length)")
-        plt.ylabel("Curvature")
-
         # Quickplot the resulting Device
         pad = Resonator.add_ref(pad)
         waveguide_device = Resonator.add_ref(waveguide_device)
@@ -309,9 +301,24 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
             Resonator.mirror(p1 = (-10, pad.center[1]), p2 = (10, pad.center[1]) )
     
     else:
-        Resonator.add_ref(waveguide_device)
+        waveguide_device = Resonator.add_ref(waveguide_device)
+        # Add short ground
+        short_ground = pg.rectangle(size=(Resonator_width + 2 * Resonator_gap_width, Resonator_gap_width), layer = Resonator_layer)
+        short_ground.movex(-short_ground.center[0])
+        short_ground.add_port(name = 'out', midpoint = [0, 0], width = Resonator_width, orientation = 270)
+        short_ground = Resonator.add_ref(short_ground)
+        short_ground.connect(port="out", destination=waveguide_device.ports['out']) 
+
         if mirror: # flip at waveguide center
             Resonator.mirror(p1 = (-10, Resonator.center[1]), p2 = (10, Resonator.center[1]) )
+
+    if print_length:
+        print(f"Length : {P.length()} [um]")
+    if plot_curvature:
+        s, K = P.curvature()
+        plt.plot(s, K, ".-")
+        plt.xlabel("Position along curve (arc length)")
+        plt.ylabel("Curvature")
 
     return Resonator
 
@@ -578,7 +585,7 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             pad_rounding_radius = 2
 
             finger_width = width
-            finger_length = 8
+            finger_length = 10
 
             box_width = 1.2
             box_finger_overlay = 0.24
@@ -611,10 +618,10 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             box.movex(-box.center[0])
             box.add_port(name = 'out', midpoint = [0, box_finger_overlay], width = finger_width, orientation = 270)
             box1 = JJ_half.add_ref( box )
-            box1.connect(port = 'out', destination = finger1.ports[2])
+            #box1.connect(port = 'out', destination = finger1.ports[2])
             if squid:
                 box2 = JJ_half.add_ref( box )
-                box2.connect(port = 'out', destination = finger2.ports[2])
+                #box2.connect(port = 'out', destination = finger2.ports[2])
 
             JJ.add_ref( JJ_half )
             JJ.add_ref( pg.copy(JJ_half).mirror(p1 = (-5, -18), p2 = (5, -18)) ) 
