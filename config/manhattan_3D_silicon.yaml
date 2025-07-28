@@ -15,8 +15,7 @@ JJ:
       width: 0.2
     down:
       length: 10.0
-      width: 1.0
-    # For dolan structure, JJ size will be affected by rounding, so this should be 0
+      width: 0.3
     rounding: 0
   pad_box:
     width: 2.0
@@ -41,29 +40,36 @@ DicingMarker:
 
 Chip:
   size:
-    x: 1000
+    x: 2000
     y: 2000
 
 Grid:
-  pad_size: ['S', 'S', 'S', 'S']
-
   finger_width: 
-    - [0.5, 0.6, 0.7, 0.8, 0.9]
-    - [1.0, 1.1, 1.2, 1.3, 1.4]
-       
-  finger_height: # this is actually bridge_width...
-    - [0.7, 0.8, 0.9]
-    - [0.7, 0.8, 0.9]
-    - [0.7, 0.8, 0.9]
-    - [0.7, 0.8, 0.9]
- 
+    - [0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.3]
+    - [0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.3]
+  finger_height:
+    - [0.3, 0.3, 0.3, 0.3]
+    - [0.3, 0.3, 0.3, 0.3]  
   gap:
-    x: 1
-    y: 1
+    x: 2
+    y: 2
 
 Text:
-  string: '"fw " + str(width) + "\nbw " + str(height)'
-  layer: 2
+  string: 'str(width)'
+  layer: 1 #2
+  size: 40
   pos:
-    x: -0.8
+    x: -0.75
+    y: -0.7
+
+
+TestPoint:
+  layer: 1 #4
+  box:
+    rounding: 0
+    width: 50
+    length: 50
+  gap: 20
+  pos:
+    x: -0.75
     y: -0.85

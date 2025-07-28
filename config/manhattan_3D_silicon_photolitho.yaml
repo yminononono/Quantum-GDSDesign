@@ -66,6 +66,7 @@ Grid:
 
 Text:
   string: 'str(width)'
+  layer: 2
   pos:
     x: -0.8
     y: -0.9

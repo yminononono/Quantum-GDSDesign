@@ -2,6 +2,7 @@ import yaml
 from scipy.special import ellipk
 from scipy.constants import *
 import math
+import numpy as np
 
 # YAML 設定ファイルを読み込む関数
 def load_config(file_path):
@@ -23,6 +24,19 @@ def flatten_dict(d, parent_key="", sep="_"):
         else:
             items[new_key] = v
     return items
+
+
+def phidl_port_to_metal_pin(port):
+    x0, y0 = port.midpoint
+    theta_rad = np.deg2rad(port.orientation + 90)  # orientationに90度足す（垂直方向）
+
+    dx = (port.width / 2) * np.cos(theta_rad)
+    dy = (port.width / 2) * np.sin(theta_rad)
+
+    point1 = [float(x0 + dx), float(y0 + dy)]
+    point2 = [float(x0 - dx), float(y0 - dy)]
+
+    return point1, point2
 
 def calculate_resonator_frequency(
         length = 3000, # um

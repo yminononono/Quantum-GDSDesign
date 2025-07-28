@@ -21,19 +21,26 @@ def device_Wafer(inch = 4):
     wafer.add_ref( inv_circle )
     return wafer
 
-def device_LaunchPad():
+def device_LaunchPad(pocket = False):
     LP=Device('launchpad')
+
+    if pocket:
+        logic = "or"
+    else:
+        logic = "not"
 
     # LP oriented in x direction (x = length, y = width)
     components = {}
     components["pad"] = pg.rectangle(size = (LaunchPad_pad_length, LaunchPad_pad_width)).movey(-0.5*LaunchPad_pad_width)
     components["padgap"] = pg.rectangle(size = (LaunchPad_pad_gap_length, LaunchPad_pad_gap_width)).movey(-0.5*LaunchPad_pad_gap_width)
-    components["pad"] = pg.boolean(components["padgap"], components["pad"], 'not', layer = LaunchPad_layer)
+    components["pad"] = pg.boolean(components["padgap"], components["pad"], logic, layer = LaunchPad_layer)
     components["pad"].add_port(name = 'out', midpoint = [0., 0.], width = LaunchPad_pad_gap_width, orientation = 180)
+    if pocket:
+        components["pad"].add_port(name = 'LaunchPad', midpoint = [LaunchPad_pad_gap_length, 0.], width = LaunchPad_pad_width, orientation = 180)
 
     components["trace"]    = pg.taper(length = LaunchPad_trace_length, width1 = LaunchPad_pad_width, width2 = LaunchPad_trace_width, port = None, layer = 0)
     components["tracegap"] = pg.taper(length = LaunchPad_trace_length, width1 = LaunchPad_pad_gap_width, width2 = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, port = None, layer = LaunchPad_layer)
-    components["trace"] = pg.boolean(components["tracegap"], components["trace"], 'not', layer = LaunchPad_layer)
+    components["trace"] = pg.boolean(components["tracegap"], components["trace"], logic, layer = LaunchPad_layer)
     components["trace"].add_port(name = 'out', midpoint = [0., 0.], width = LaunchPad_pad_gap_width, orientation = 180)
 
     components["trace"] = LP.add_ref( components["trace"] )
@@ -64,23 +71,26 @@ def device_FeedLine():
     FL.add_ref(D3)
     return FL
 
-def device_FeedLine_Tc():
+def device_FeedLine_Tc(pocket = False):
     # make 2 pads
     FL = Device("feedline")
     FeedLine_length = 2200
-    LP_in = pg.copy(device_LaunchPad())
+    LP_in = pg.copy(device_LaunchPad(pocket))
     LP_in.xmin = 0
     LP_in.rotate(90).movey(0.5*FeedLine_length)    
-    LP_out = pg.copy(device_LaunchPad())
+    LP_out = pg.copy(device_LaunchPad(pocket))
     LP_out.xmin = 0
     LP_out.rotate(-90).movey(-0.5*FeedLine_length)
     FL.add_ref(LP_in)
     FL.add_ref(LP_out)
 
-    X = CrossSection()
-    X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-    X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-    D3 = pr.route_smooth(LP_in.ports['out'], LP_out.ports['out'], width = X)
+    if pocket:
+        D3 = pr.route_smooth(LP_in.ports['out'], LP_out.ports['out'], layer = LaunchPad_layer)
+    else:
+        X = CrossSection()
+        X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        D3 = pr.route_smooth(LP_in.ports['out'], LP_out.ports['out'], width = X)
     FL.add_ref(D3)
     return FL
 
@@ -188,7 +198,7 @@ def device_TestBoxes(DCLine = False):
 
     return TBXs
 
-def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, transmon = True, side = False, mirror = False, entangle = False, print_length = False, plot_curvature = False):
+def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, transmon = True, side = False, mirror = False, entangle = False, print_length = False, plot_curvature = False, pocket = False):
     Resonator = Device("resonator")
 
     P = Path()
@@ -244,7 +254,10 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
     X.add(width=Resonator_gap_width, offset = -0.5*(Resonator_width + Resonator_gap_width), layer = Resonator_layer)
     
     # Combine the Path and the CrossSection
-    waveguide_device = P.extrude(X)
+    if pocket:
+        waveguide_device = P.extrude(Resonator_width + 2*Resonator_gap_width, layer = Resonator_layer)
+    else:
+        waveguide_device = P.extrude(X)
     waveguide_device.add_port(name = 'out', midpoint = [0., 0.], width = Resonator_width, orientation = 180)
     waveguide_device.rotate(90)
     waveguide_device.movex(-(resonator_straight1+Resonator_radius))
