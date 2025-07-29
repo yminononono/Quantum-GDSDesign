@@ -54,20 +54,23 @@ def device_LaunchPad(pocket = False):
 
     return LP
 
-def device_FeedLine():
+def device_FeedLine(pocket = False):
     # make 2 pads
     FL = Device("feedline")
-    LP_in = pg.copy(device_LaunchPad())
+    LP_in = pg.copy(device_LaunchPad(pocket))
     LP_in.move((750, 2025))
-    LP_out = pg.copy(device_LaunchPad())
+    LP_out = pg.copy(device_LaunchPad(pocket))
     LP_out.rotate(90).move((1950, 800))
     FL.add_ref(LP_in)
     FL.add_ref(LP_out)
 
-    X = CrossSection()
-    X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-    X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-    D3 = pr.route_smooth(LP_in.ports['out'], LP_out.ports['out'], width = X, radius=100, path_type='J', length1=790, length2=768, smooth_options={'corner_fun': pp.arc})
+    if pocket:
+        D3 = pr.route_smooth(LP_in.ports['out'], LP_out.ports['out'], radius=100, path_type='J', length1=790, length2=768, smooth_options={'corner_fun': pp.arc}, layer = LaunchPad_layer)
+    else:
+        X = CrossSection()
+        X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        D3 = pr.route_smooth(LP_in.ports['out'], LP_out.ports['out'], width = X, radius=100, path_type='J', length1=790, length2=768, smooth_options={'corner_fun': pp.arc})
     FL.add_ref(D3)
     return FL
 
@@ -199,6 +202,7 @@ def device_TestBoxes(DCLine = False):
     return TBXs
 
 def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, resonator_straight3 = 475, resonator_straight4 = 1400, transmon = True, side = False, mirror = False, entangle = False, print_length = False, plot_curvature = False, pocket = False):
+
     Resonator = Device("resonator")
 
     P = Path()
@@ -269,6 +273,7 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
         cap_length = 10
         stub_width = Resonator_width
         stub_length = 2*Resonator_width
+
         cap = pg.tee(size = (cap_width,cap_length), stub_size = (stub_width,stub_length), taper_type = 'fillet', layer = 4)
         if entangle:
             cap_entangle = pg.copy( cap )
@@ -290,11 +295,12 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
         # Subtract from pad
         pad = pg.bbox([(-0.5*Resonator_pad_width, -0.5*Resonator_pad_length),(0.5*Resonator_pad_width, 0.5*Resonator_pad_length)])
         pad.movey(cap_length + cap_gap1 + cap_length2 + 0.5*cap_gap2)
-        pad = pg.boolean(pad, cap, 'not', layer = 4)
-        pad = pg.boolean(pad, cap_qubit_up, 'not', layer = 4)    
-        pad = pg.boolean(pad, cap_qubit_down, 'not', layer = 4)        
-        if entangle:
-            pad = pg.boolean(pad, cap_entangle, 'not', layer = 4)        
+        if not pocket:
+            pad = pg.boolean(pad, cap, "not", layer = 4)
+            pad = pg.boolean(pad, cap_qubit_up, "not", layer = 4)    
+            pad = pg.boolean(pad, cap_qubit_down, "not", layer = 4)        
+            if entangle:
+                pad = pg.boolean(pad, cap_entangle, "not", layer = 4)        
 
         # pad.add_port(name = 'out', midpoint = [0., -stub_width], width = stub_width, orientation = 270)
         pad.add_port(name = 'out', midpoint = [0., -cap_length], width = stub_width, orientation = 270)
