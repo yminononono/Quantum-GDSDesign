@@ -287,7 +287,8 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
         cap_length2 = 50
         cap_qubit_up = pg.compass_multi(size = (cap_width2, cap_length2), ports = {'N':3,'S':3}, layer = 0)
         cap_qubit_down = pg.compass_multi(size = (cap_width2, cap_length2), ports = {'N':3,'S':3}, layer = 0)
-
+        cap_qubit_up.add_port(name = 'Junction_up', midpoint = [0., -0.5*cap_length2], width = 10, orientation = -90)
+        cap_qubit_down.add_port(name = 'Junction_down', midpoint = [0., +0.5*cap_length2], width = 10, orientation = 90)
         cap_qubit_down.ymin = cap.ymax + cap_gap1
         cap_qubit_up.ymin = cap_qubit_down.ymax + cap_gap2
         if entangle:
@@ -305,8 +306,10 @@ def device_Resonator(resonator_straight1 = 240, resonator_straight2 = 290, reson
         # pad.add_port(name = 'out', midpoint = [0., -stub_width], width = stub_width, orientation = 270)
         pad.add_port(name = 'out', midpoint = [0., -cap_length], width = stub_width, orientation = 270)
         pad.add_port(name = 'entangle', midpoint = [0., 2*(cap_length+cap_gap1+cap_length2)+cap_gap2+stub_length], width = stub_width, orientation = 90)
-
-        # qp(pad)
+        
+        for port in cap_qubit_up.get_ports() + cap_qubit_down.get_ports():
+            if "Junction" in port.name:
+                pad.add_port(name = port.name, midpoint = port.midpoint, width = port.width, orientation = port.orientation)
 
         # Quickplot the resulting Device
         pad = Resonator.add_ref(pad)
