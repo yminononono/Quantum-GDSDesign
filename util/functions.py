@@ -4,6 +4,10 @@ from scipy.constants import *
 import math
 import numpy as np
 
+from phidl import quickplot as qp
+from phidl import Device
+import phidl.geometry as pg
+
 # YAML 設定ファイルを読み込む関数
 def load_config(file_path):
     with open(file_path, 'r') as file:
@@ -25,6 +29,85 @@ def flatten_dict(d, parent_key="", sep="_"):
             items[new_key] = v
     return items
 
+def phidl_to_metal(pocket_list, metal_list, name_list, outname, LaunchPad_gap):
+
+    chipdesign_qiskit = Device('chipdesign_qiskit')
+    chipdesign_qiskit_pocket = Device('chipdesign_qiskit_pocket')
+
+    a_list = {}
+    b_list = {}
+    for ilayer, component in enumerate(pocket_list):
+        a_list[ilayer] = Device("a")
+        for i in component.get_layers():
+            a_list[ilayer].add_ref( pg.copy_layer(component, layer = i, new_layer=ilayer) )
+            chipdesign_qiskit_pocket.add_ref( pg.copy_layer(component, layer = i, new_layer=ilayer) )
+    for ilayer, component in enumerate(metal_list):
+        b_list[ilayer] = Device("b")
+        for i in component.get_layers():
+            b_list[ilayer].add_ref( pg.copy_layer(component, layer = i, new_layer=ilayer) )  
+        chipdesign_qiskit.add_ref( pg.boolean(a_list[ilayer], b_list[ilayer], operation = 'not', layer = ilayer) )        
+
+    chipdesign_qiskit = pg.union( chipdesign_qiskit, by_layer = True )
+    chipdesign_qiskit_pocket = pg.union( chipdesign_qiskit_pocket, by_layer = True )
+    chipdesign_qiskit.flatten()
+    chipdesign_qiskit_pocket.flatten()
+    qp(chipdesign_qiskit)
+    qp(chipdesign_qiskit_pocket)
+    chipdesign_qiskit.write_gds(f'output/qiskit-metal/{outname}.gds')
+    chipdesign_qiskit_pocket.write_gds(f'output/qiskit-metal/{outname}_pocket.gds')
+
+
+    # Dump port data
+    data = {}
+    for ilayer, component in enumerate(pocket_list):
+        key =  name_list[ilayer]
+        data[key] = dict(
+            layer = ilayer
+        )
+
+        i = 0
+        port_data = {}
+        jj_data = {}        
+        for port in component.get_ports():
+            if port.name == "LaunchPad":
+                start, end = phidl_port_to_metal_pin(port)
+                port_data[port.name + str(i)] = dict(
+                    start = start,
+                    end   = end,
+                    width = float(port.width),
+                    gap   = float(LaunchPad_gap),
+                )
+                i+=1
+            elif port.name == "Junction_up":
+                jj_data["start"] = [float(port.midpoint[0]), float(port.midpoint[1])]
+            elif port.name == "Junction_down":
+                jj_data["end"] = [float(port.midpoint[0]), float(port.midpoint[1])]           
+                jj_data["width"] = float(port.width)
+
+        if port_data:
+            data[key]["ports"] = port_data
+        if jj_data:
+            data[key]["jj"] = jj_data            
+
+    print(data)
+    with open(f'output/qiskit-metal/{outname}.yaml', 'w') as f:
+        yaml.safe_dump(data, f, sort_keys=False)
+
+def extract_with_ports(device, layers_to_extract):
+
+    print(device.get_ports())
+    extracted = pg.extract(device, layers_to_extract)
+    
+    for port in device.get_ports():
+        if port.name not in [x.name for x in extracted.get_ports()]:
+            extracted.add_port(
+                name=port.name, 
+                midpoint=port.midpoint, 
+                width=port.width, 
+                orientation =port.orientation
+            )
+    
+    return extracted
 
 def phidl_port_to_metal_pin(port):
     x0, y0 = port.midpoint
