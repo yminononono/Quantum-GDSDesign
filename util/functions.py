@@ -29,14 +29,14 @@ def flatten_dict(d, parent_key="", sep="_"):
             items[new_key] = v
     return items
 
-def phidl_to_metal(component_list, name_list, outname, LaunchPad_gap):
+def phidl_to_metal(device_list, outname, LaunchPad_gap):
 
     chipdesign_qiskit = Device('chipdesign_qiskit')
     chipdesign_qiskit_pocket = Device('chipdesign_qiskit_pocket')
 
-    for ilayer, component in enumerate(component_list):
-        pocket = component.pocket
-        metal = component.metal
+    for ilayer, device in enumerate(device_list):
+        pocket = device["device"].pocket
+        metal  = device["device"].metal
         for i in pocket.get_layers():
             chipdesign_qiskit_pocket.add_ref( pg.copy_layer(pocket, layer = i, new_layer=ilayer) )
         for i in metal.get_layers():
@@ -54,8 +54,8 @@ def phidl_to_metal(component_list, name_list, outname, LaunchPad_gap):
 
     # Dump port data
     data = {}
-    for ilayer, component in enumerate(component_list):
-        key =  name_list[ilayer]
+    for ilayer, device in enumerate(device_list):
+        key =  device["name"]
         data[key] = dict(
             layer = ilayer
         )
@@ -63,7 +63,7 @@ def phidl_to_metal(component_list, name_list, outname, LaunchPad_gap):
         i = 0
         port_data = {}
         jj_data = {}        
-        for port in component.pocket.get_ports():
+        for port in device["device"].pocket.get_ports():
             if port.name == "LaunchPad":
                 start, end = phidl_port_to_metal_pin(port)
                 port_data[port.name + str(i)] = dict(
