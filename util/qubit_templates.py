@@ -15,6 +15,53 @@ from BaseDevice import *
 finger_layer = 1
 box_layer = 2
 
+def make_Path(resonator_straight1 = 240, 
+              resonator_straight2 = 290, 
+              resonator_straight3 = 475, # determines the inductive coupling
+              resonator_straight4 = 1400, 
+              n_step = 3,
+              side = False ):
+
+    P = Path()
+    left180_turn = pp.arc(radius = Resonator_radius, angle = 180)
+    right180_turn = pp.arc(radius = Resonator_radius, angle = -180)
+    # left_turn = pp.euler(radius = resonator_radius, angle = 90)
+    # right_turn = pp.euler(radius = resonator_radius, angle = -90)
+    left_turn = pp.arc(radius = Resonator_radius, angle = 90)
+    right_turn = pp.arc(radius = Resonator_radius, angle = -90)
+    straight1 = pp.straight(length = resonator_straight1)
+    straight2 = pp.straight(length = resonator_straight2)
+    straight3 = pp.straight(length = resonator_straight3)
+    straight4 = pp.straight(length = resonator_straight4)
+    straight5 = pp.straight(length = 250)
+
+    path_list = []
+    if side:
+        path_list = [
+            straight5,
+            right_turn,
+        ]
+
+    path_list.extend([
+        straight4,
+        right_turn,
+        straight3,
+        right180_turn
+    ])
+
+    for i in range(n_step):
+        if i % 2 == 0:
+            turn = left180_turn
+        else:
+            turn = right180_turn
+        path_list.extend([
+            straight2,
+            turn
+        ])
+    path_list.extend([straight1])
+    P.append(path_list)
+    
+    return P
 
 
 def device_Wafer(inch = 4):
@@ -37,7 +84,7 @@ class device_LaunchPad(BaseDevice):
         components["padgap"] = pg.rectangle(size = (LaunchPad_pad_gap_length, LaunchPad_pad_gap_width)).movey(-0.5*LaunchPad_pad_gap_width)
         components["pad_device"] = boolean_with_ports(components["padgap"], components["pad"], "not", layer = LaunchPad_layer)
         components["pad_pocket"] = boolean_with_ports(components["padgap"], components["pad"], "or", layer = LaunchPad_layer)             
-        components["pad_pocket"].add_port(name = 'LaunchPad', midpoint = [LaunchPad_pad_gap_length, 0.], width = LaunchPad_pad_width, orientation = 180)
+        components["pad_pocket"].add_port(name = f'LaunchPad{self.id}_{str(LaunchPad_pad_gap_length - LaunchPad_pad_length)}', midpoint = [LaunchPad_pad_gap_length, 0.], width = LaunchPad_pad_width, orientation = 180)
 
         components["trace"]    = pg.taper(length = LaunchPad_trace_length, width1 = LaunchPad_pad_width, width2 = LaunchPad_trace_width, port = None, layer = 0)
         components["trace"].add_port(name = 'connect', midpoint = [0., 0.], width = LaunchPad_pad_gap_width, orientation = 180)        
@@ -238,54 +285,6 @@ def device_TestBoxes(DCLine = False):
         tbx.center = center
 
     return TBXs
-
-def make_Path(resonator_straight1 = 240, 
-              resonator_straight2 = 290, 
-              resonator_straight3 = 475, # determines the inductive coupling
-              resonator_straight4 = 1400, 
-              n_step = 3,
-              side = False ):
-
-    P = Path()
-    left180_turn = pp.arc(radius = Resonator_radius, angle = 180)
-    right180_turn = pp.arc(radius = Resonator_radius, angle = -180)
-    # left_turn = pp.euler(radius = resonator_radius, angle = 90)
-    # right_turn = pp.euler(radius = resonator_radius, angle = -90)
-    left_turn = pp.arc(radius = Resonator_radius, angle = 90)
-    right_turn = pp.arc(radius = Resonator_radius, angle = -90)
-    straight1 = pp.straight(length = resonator_straight1)
-    straight2 = pp.straight(length = resonator_straight2)
-    straight3 = pp.straight(length = resonator_straight3)
-    straight4 = pp.straight(length = resonator_straight4)
-    straight5 = pp.straight(length = 250)
-
-    path_list = []
-    if side:
-        path_list = [
-            straight5,
-            right_turn,
-        ]
-
-    path_list.extend([
-        straight4,
-        right_turn,
-        straight3,
-        right180_turn
-    ])
-
-    for i in range(n_step):
-        if i % 2 == 0:
-            turn = left180_turn
-        else:
-            turn = right180_turn
-        path_list.extend([
-            straight2,
-            turn
-        ])
-    path_list.extend([straight1])
-    P.append(path_list)
-    
-    return P
 
 class device_Resonator(BaseDevice):
     def __init__(self, 

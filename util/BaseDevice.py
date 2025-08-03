@@ -2,11 +2,19 @@
 from phidl import Device
 
 class BaseDevice:
+    count = 0
+
     def __init__(self, name):
         self.device = Device(name)
         self.metal  = Device(f'{name}_metal')
         self.pocket = Device(f'{name}_pocket')
         self.devices = [self.device, self.metal, self.pocket]
+        
+        cls = self.__class__ 
+        if not hasattr(cls, 'count'):
+            cls.count = 0
+        self.id = cls.count
+        cls.count += 1
 
     def rotate(self, degree):
         for d in self.devices:

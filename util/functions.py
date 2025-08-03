@@ -29,7 +29,7 @@ def flatten_dict(d, parent_key="", sep="_"):
             items[new_key] = v
     return items
 
-def phidl_to_metal(device_list, outname, LaunchPad_gap):
+def phidl_to_metal(device_list, outname):
 
     chipdesign_qiskit = Device('chipdesign_qiskit')
     chipdesign_qiskit_pocket = Device('chipdesign_qiskit_pocket')
@@ -60,19 +60,18 @@ def phidl_to_metal(device_list, outname, LaunchPad_gap):
             layer = ilayer
         )
 
-        i = 0
         port_data = {}
         jj_data = {}        
         for port in device["device"].pocket.get_ports():
-            if port.name == "LaunchPad":
+            if "LaunchPad" in str(port.name):
+                name, gap = port.name.split('_')
                 start, end = phidl_port_to_metal_pin(port)
-                port_data[port.name + str(i)] = dict(
+                port_data[name] = dict(
                     start = start,
                     end   = end,
                     width = float(port.width),
-                    gap   = float(LaunchPad_gap),
+                    gap   = float(gap),
                 )
-                i+=1
             elif port.name == "Junction_up":
                 jj_data["start"] = [float(port.midpoint[0]), float(port.midpoint[1])]
             elif port.name == "Junction_down":
