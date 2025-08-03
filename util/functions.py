@@ -29,23 +29,18 @@ def flatten_dict(d, parent_key="", sep="_"):
             items[new_key] = v
     return items
 
-def phidl_to_metal(pocket_list, metal_list, name_list, outname, LaunchPad_gap):
+def phidl_to_metal(component_list, name_list, outname, LaunchPad_gap):
 
     chipdesign_qiskit = Device('chipdesign_qiskit')
     chipdesign_qiskit_pocket = Device('chipdesign_qiskit_pocket')
 
-    a_list = {}
-    b_list = {}
-    for ilayer, component in enumerate(pocket_list):
-        a_list[ilayer] = Device("a")
-        for i in component.get_layers():
-            a_list[ilayer].add_ref( pg.copy_layer(component, layer = i, new_layer=ilayer) )
-            chipdesign_qiskit_pocket.add_ref( pg.copy_layer(component, layer = i, new_layer=ilayer) )
-    for ilayer, component in enumerate(metal_list):
-        b_list[ilayer] = Device("b")
-        for i in component.get_layers():
-            b_list[ilayer].add_ref( pg.copy_layer(component, layer = i, new_layer=ilayer) )  
-        chipdesign_qiskit.add_ref( pg.boolean(a_list[ilayer], b_list[ilayer], operation = 'not', layer = ilayer) )        
+    for ilayer, component in enumerate(component_list):
+        pocket = component.pocket
+        metal = component.metal
+        for i in pocket.get_layers():
+            chipdesign_qiskit_pocket.add_ref( pg.copy_layer(pocket, layer = i, new_layer=ilayer) )
+        for i in metal.get_layers():
+            chipdesign_qiskit.add_ref( pg.copy_layer(metal, layer = i, new_layer=ilayer) )            
 
     chipdesign_qiskit = pg.union( chipdesign_qiskit, by_layer = True )
     chipdesign_qiskit_pocket = pg.union( chipdesign_qiskit_pocket, by_layer = True )
@@ -59,7 +54,7 @@ def phidl_to_metal(pocket_list, metal_list, name_list, outname, LaunchPad_gap):
 
     # Dump port data
     data = {}
-    for ilayer, component in enumerate(pocket_list):
+    for ilayer, component in enumerate(component_list):
         key =  name_list[ilayer]
         data[key] = dict(
             layer = ilayer
@@ -68,7 +63,7 @@ def phidl_to_metal(pocket_list, metal_list, name_list, outname, LaunchPad_gap):
         i = 0
         port_data = {}
         jj_data = {}        
-        for port in component.get_ports():
+        for port in component.pocket.get_ports():
             if port.name == "LaunchPad":
                 start, end = phidl_port_to_metal_pin(port)
                 port_data[port.name + str(i)] = dict(
@@ -108,6 +103,21 @@ def extract_with_ports(device, layers_to_extract):
             )
     
     return extracted
+
+def boolean_with_ports(deviceA, deviceB, logic, layer):
+
+    boolean = pg.boolean(deviceA, deviceB, logic, layer = layer)
+    
+    for port in deviceA.get_ports() + deviceB.get_ports():
+        if port.name not in [x.name for x in boolean.get_ports()]:
+            boolean.add_port(
+                name=port.name, 
+                midpoint=port.midpoint, 
+                width=port.width, 
+                orientation =port.orientation
+            ) 
+
+    return boolean
 
 def phidl_port_to_metal_pin(port):
     x0, y0 = port.midpoint
