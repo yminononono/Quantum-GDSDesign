@@ -243,6 +243,7 @@ def make_Path(resonator_straight1 = 240,
               resonator_straight2 = 290, 
               resonator_straight3 = 475, # determines the inductive coupling
               resonator_straight4 = 1400, 
+              n_step = 3,
               side = False ):
 
     P = Path()
@@ -258,37 +259,32 @@ def make_Path(resonator_straight1 = 240,
     straight4 = pp.straight(length = resonator_straight4)
     straight5 = pp.straight(length = 250)
 
+    path_list = []
     if side:
-        P.append([
+        path_list = [
             straight5,
             right_turn,
-            straight4,
-            right_turn,
-            straight3,
-            right180_turn,
-            straight2,
-            left180_turn,
-            straight2,
-            right180_turn,
-            straight2,
-            left180_turn,   
-            straight1,
-        ])
-    else:
-        P.append([
-            straight4,
-            right_turn,
-            straight3,
-            right180_turn,
-            straight2,
-            left180_turn,
-            straight2,
-            right180_turn,
-            straight2,
-            left180_turn,   
-            straight1,
-        ])
+        ]
 
+    path_list.extend([
+        straight4,
+        right_turn,
+        straight3,
+        right180_turn
+    ])
+
+    for i in range(n_step):
+        if i % 2 == 0:
+            turn = left180_turn
+        else:
+            turn = right180_turn
+        path_list.extend([
+            straight2,
+            turn
+        ])
+    path_list.extend([straight1])
+    P.append(path_list)
+    
     return P
 
 class device_Resonator(BaseDevice):
@@ -297,6 +293,7 @@ class device_Resonator(BaseDevice):
                  resonator_straight2 = 290, 
                  resonator_straight3 = 475, # determines the inductive coupling
                  resonator_straight4 = 1400, 
+                 n_step = 3,
                  norm_to_length = None,
                  transmon = True, 
                  side = False, 
@@ -317,25 +314,26 @@ class device_Resonator(BaseDevice):
         
         # Combine the Path and the CrossSection
         P = make_Path(
-                 resonator_straight1, 
-                 resonator_straight2, 
-                 resonator_straight3,
-                 resonator_straight4,
-                 side 
+                 resonator_straight1 = resonator_straight1, 
+                 resonator_straight2 = resonator_straight2, 
+                 resonator_straight3 = resonator_straight3,
+                 resonator_straight4 = resonator_straight4,
+                 n_step = n_step,
+                 side = side 
         )
         if norm_to_length:
-            norm_factor = float( (norm_to_length - 9*(math.pi/2)*Resonator_radius) /(P.length() - 9*(math.pi/2)*Resonator_radius) )
-            print(norm_factor)
+            norm_factor = float( (norm_to_length - (3 + 2*n_step)*(math.pi/2)*Resonator_radius) /(P.length() - (3 + 2*n_step)*(math.pi/2)*Resonator_radius) )
             resonator_straight1 = norm_factor * resonator_straight1
             resonator_straight2 = norm_factor * resonator_straight2
             resonator_straight3 = norm_factor * resonator_straight3
             resonator_straight4 = norm_factor * resonator_straight4       
             P = make_Path(
-                 resonator_straight1, 
-                 resonator_straight2, 
-                 resonator_straight3,
-                 resonator_straight4,
-                 side 
+                 resonator_straight1 = resonator_straight1, 
+                 resonator_straight2 = resonator_straight2, 
+                 resonator_straight3 = resonator_straight3,
+                 resonator_straight4 = resonator_straight4,
+                 n_step = n_step,
+                 side = side 
             )                             
 
         device = P.extrude(X)
@@ -724,11 +722,11 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             box = pg.rectangle((box_width, box_width), box_layer)
             box.movex(-box.center[0])
             box.add_port(name = 'out', midpoint = [0, box_finger_overlay], width = finger_width, orientation = 270)
-            box1 = JJ_half.add_ref( box )
+            #box1 = JJ_half.add_ref( box )
             #box1.connect(port = 'out', destination = finger1.ports[2])
-            if squid:
-                box2 = JJ_half.add_ref( box )
-                #box2.connect(port = 'out', destination = finger2.ports[2])
+            # if squid:
+            #     box2 = JJ_half.add_ref( box )
+            #     #box2.connect(port = 'out', destination = finger2.ports[2])
 
             JJ.add_ref( JJ_half )
             JJ.add_ref( pg.copy(JJ_half).mirror(p1 = (-5, -18), p2 = (5, -18)) ) 
