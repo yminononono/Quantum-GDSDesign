@@ -62,8 +62,7 @@ device_list = [
 
 phidl_to_metal(
     device_list = device_list, 
-    outname = "TcSampleDesign",
-    LaunchPad_gap = LaunchPad_pad_gap_length - LaunchPad_pad_length,
+    outname = "TcSampleDesign"
 )
 ```
 
