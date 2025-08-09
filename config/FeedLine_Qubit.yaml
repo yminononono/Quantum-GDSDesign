@@ -5,3 +5,60 @@ Pad:
   height: 400
   rounding: 20
   gap: 20 # gap between two capacitance pads
+
+FeedLine:
+  input:
+    type: "LaunchPad"
+    pos: [1000, 0]
+    angle: 0
+  output:
+    type: "ShortToGround"
+    pos: [-1000, 0]
+    angle: 180
+
+  ## If you just want to connect the input and output port,
+  ## this is the easiest way.
+  ## options are listed in https://phidl.readthedocs.io/en/latest/tutorials/routing.html#List-of-routing-path-types
+
+  path:
+    type: "straight"
+    radius: 10
+
+  ## This is probably the best way to make a user defined
+  ## complex meander. You can extract the position to place
+  ## resonators next to the feedline by using the path points.
+  # path:
+  #   type: "manual"
+  #   radius: 40
+  #   points:
+  #     - [-400, 100]
+  #     - [300, 100]
+  #     - [300, -100]
+  #     - [-400, -100]   
+
+  ## You can make a complex meander by the "extrude" option, 
+  ## but this is not recommended since it is difficult to
+  ## extract the meander positions.
+  ## The output launchpad will be automatically moved.
+  # path:
+  #   type: "extrude"
+  #   points:
+  #     - ["straight", 1100]
+  #     - ["left", 100]
+  #     - ["straight", 400]
+  #     - ["right", 100]
+  #     - ["straight", 400]    
+
+LaunchPad:
+  layer: 4
+  pad:
+    length: 300
+    width: 200
+    gap:
+      length: 400
+      width: 500
+  trace:
+    length: 200
+    width: 20
+    gap:
+      width: 11

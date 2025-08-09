@@ -9,7 +9,6 @@ class BaseDevice:
         self.metal  = Device(f'{name}_metal')
         self.pocket = Device(f'{name}_pocket')
         self.devices = [self.device, self.metal, self.pocket]
-        
         cls = self.__class__ 
         if not hasattr(cls, 'count'):
             cls.count = 0

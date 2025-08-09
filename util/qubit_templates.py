@@ -72,6 +72,28 @@ def device_Wafer(inch = 4):
     wafer.add_ref( inv_circle )
     return wafer
 
+class device_ShortToGround(BaseDevice):
+    def __init__(self):
+        
+        super().__init__("short")
+
+        # LP oriented in x direction (x = length, y = width)
+        components = {}
+        pocket_width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width
+        components["short"] = pg.rectangle(size = (1, LaunchPad_trace_width)).movey(-0.5*LaunchPad_trace_width)
+        components["shortgap"] = pg.rectangle(size = (1, pocket_width)).movey(-0.5*pocket_width)
+        components["short_device"] = boolean_with_ports(components["shortgap"], components["short"], "not", layer = LaunchPad_layer)
+        components["short_pocket"] = boolean_with_ports(components["shortgap"], components["short"], "or", layer = LaunchPad_layer)
+      
+        components["short_device"] = self.device.add_ref( components["short_device"] )
+        components["short_pocket"] = self.pocket.add_ref( components["short_pocket"] )            
+
+        self.device.add_port(name = 'out', midpoint = [0, 0.], width = pocket_width, orientation = 180)
+        self.pocket.add_port(name = 'out', midpoint = [0, 0.], width = pocket_width, orientation = 180)        
+        self.center = (0,0)
+
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+
 class device_LaunchPad(BaseDevice):
     def __init__(self):
         
@@ -170,49 +192,99 @@ class device_FeedLine(BaseDevice):
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
 class device_FeedLine_Tc(BaseDevice):
-    def __init__(self, open_to_ground = False):
+    def __init__(self):
         # make 2 pads
         super().__init__("feedline")
 
-        FeedLine_length = 2200
         LP_in = device_LaunchPad()
         LP_in.xmin = 0
-        LP_in.rotate(90).movey(0.5*FeedLine_length)
+        LP_in.rotate(FeedLine_input_angle).move(FeedLine_input_pos)
 
-        X = CrossSection()
-        X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-        X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        X_device = CrossSection()
+        X_device.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        X_device.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+
+        X_pocket = CrossSection()
+        X_pocket.add(width=LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, layer = LaunchPad_layer, ports = ('in','out'))
 
         device_ref, metal_ref, pocket_ref = self.add_ref(LP_in)
 
-        if open_to_ground:    
-            P = Path()
-            straight = pp.straight(length = FeedLine_length)
-            P.append([ straight ])
-
-            D3 = P.extrude(X)
-            D4 = P.extrude(LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, layer = LaunchPad_layer)
-
-            D3.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
-            D4.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
-
-            D3 = self.device.add_ref( D3 )
-            D3.connect(port = 'out1', destination = device_ref.ports['out'])
-        
-            D4 = self.pocket.add_ref( D4 )
-            D4.connect(port = 'out1', destination = pocket_ref.ports['out'])
-        else:
+        if FeedLine_output_type == "LaunchPad":
             LP_out = device_LaunchPad()
-            LP_out.xmin = 0
-            LP_out.rotate(-90).movey(-0.5*FeedLine_length)
+        elif FeedLine_output_type == "ShortToGround":
+            LP_out = device_ShortToGround()
+        LP_out.xmin = 0
+        LP_out.rotate(FeedLine_output_angle).move(FeedLine_output_pos)
+
+        if FeedLine_path_type == "extrude":
+            P = Path()
+            for pathtype, length in FeedLine_path_points:
+                if pathtype == "left":
+                    path = pp.arc(radius = length, angle = 90)
+                elif pathtype == "right":
+                    path = pp.arc(radius = length, angle = -90)
+                elif pathtype == "straight":
+                    path = pp.straight(length = length)
+                P.append(path)
+
+            FeedLine_device = P.extrude(X_device)
+            FeedLine_pocket = P.extrude(X_pocket)
+            #FeedLine_pocket = P.extrude(LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, layer = LaunchPad_layer)
+
+            ## Get port information
+            for port in FeedLine_pocket.get_ports():
+                FeedLine_device.add_port(port)
+            # FeedLine_device.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
+            # FeedLine_pocket.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
+
+            FeedLine_device = self.device.add_ref( FeedLine_device )
+            FeedLine_device.connect(port = 'in', destination = device_ref.ports['out'])
+            
+            FeedLine_pocket = self.pocket.add_ref( FeedLine_pocket )
+            FeedLine_pocket.connect(port = 'in', destination = pocket_ref.ports['out'])
+
+            device_ref, metal_ref, pocket_ref = self.add_ref(LP_out)
+
+            device_ref.connect(port = "out", destination = FeedLine_device.ports['out'])
+            pocket_ref.connect(port = "out", destination = FeedLine_pocket.ports['out'])   
+        
+        elif FeedLine_path_type == "manual":
+            manual_path = [ LP_in.device.ports['out'].midpoint ] + FeedLine_path_points +  [ LP_out.device.ports['out'].midpoint ]
+            print(manual_path)
+            D3 = pr.route_smooth(LP_in.device.ports['out'], 
+                                    LP_out.device.ports['out'], 
+                                    width = X_device, 
+                                    path_type='manual', 
+                                    manual_path=manual_path, 
+                                    radius = FeedLine_path_radius,
+                                    smooth_options={'corner_fun': pp.arc})
+            D4 = pr.route_smooth(LP_in.device.ports['out'], 
+                                    LP_out.device.ports['out'], 
+                                    path_type='manual', 
+                                    manual_path=manual_path,
+                                    radius = FeedLine_path_radius, 
+                                    smooth_options={'corner_fun': pp.arc})
+            
+            self.device.add_ref(D3)
+            self.pocket.add_ref(D4)
             self.add_ref(LP_out)
 
-            D3 = pr.route_smooth(LP_in.device.ports['out'], LP_out.device.ports['out'], width = X)
-            D4 = pr.route_smooth(LP_in.pocket.ports['out'], LP_out.pocket.ports['out'])
-            # X.add(width=LaunchPad_trace_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = )
+        else:
+            D3 = pr.route_smooth(LP_in.device.ports['out'], 
+                                 LP_out.device.ports['out'], 
+                                 width = X_device, 
+                                 path_type = FeedLine_path_type, 
+                                 radius = FeedLine_path_radius,
+                                 smooth_options={'corner_fun': pp.arc})
+            D4 = pr.route_smooth(LP_in.pocket.ports['out'], 
+                                 LP_out.pocket.ports['out'], 
+                                 path_type = FeedLine_path_type,
+                                 radius = FeedLine_path_radius,
+                                 smooth_options={'corner_fun': pp.arc})
 
             self.device.add_ref(D3)
             self.pocket.add_ref(D4)
+            self.add_ref(LP_out)
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
