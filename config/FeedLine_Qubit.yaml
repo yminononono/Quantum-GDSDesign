@@ -1,0 +1,7 @@
+# Unit in [um]
+Pad:
+  layer: 1
+  width: 250
+  height: 400
+  rounding: 20
+  gap: 20 # gap between two capacitance pads

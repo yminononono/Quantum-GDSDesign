@@ -83,8 +83,14 @@ class device_LaunchPad(BaseDevice):
         components["pad"].add_port(name = 'connect', midpoint = [0., 0.], width = LaunchPad_pad_gap_width, orientation = 180)
         components["padgap"] = pg.rectangle(size = (LaunchPad_pad_gap_length, LaunchPad_pad_gap_width)).movey(-0.5*LaunchPad_pad_gap_width)
         components["pad_device"] = boolean_with_ports(components["padgap"], components["pad"], "not", layer = LaunchPad_layer)
-        components["pad_pocket"] = boolean_with_ports(components["padgap"], components["pad"], "or", layer = LaunchPad_layer)             
-        components["pad_pocket"].add_port(name = f'LaunchPad{self.id}_{str(LaunchPad_pad_gap_length - LaunchPad_pad_length)}', midpoint = [LaunchPad_pad_gap_length, 0.], width = LaunchPad_pad_width, orientation = 180)
+        components["pad_pocket"] = boolean_with_ports(components["padgap"], components["pad"], "or", layer = LaunchPad_layer)
+        components["pad_pocket"].add_port(
+            name = f'LaunchPad{self.id}_{str(LaunchPad_pad_gap_length - LaunchPad_pad_length)}', 
+            midpoint = [LaunchPad_pad_gap_length, 0.], 
+            width = LaunchPad_pad_width, 
+            orientation = 180
+        )   
+        #components["pad_pocket"].add_port(name = f'LaunchPad{self.id}_{str(LaunchPad_pad_gap_length - LaunchPad_pad_length)}', midpoint = [LaunchPad_pad_gap_length, 0.], width = LaunchPad_pad_width, orientation = 180)
 
         components["trace"]    = pg.taper(length = LaunchPad_trace_length, width1 = LaunchPad_pad_width, width2 = LaunchPad_trace_width, port = None, layer = 0)
         components["trace"].add_port(name = 'connect', midpoint = [0., 0.], width = LaunchPad_pad_gap_width, orientation = 180)        
@@ -105,6 +111,40 @@ class device_LaunchPad(BaseDevice):
         self.center = (0,0)
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+
+class device_Pad(BaseDevice):
+    def __init__(self):
+        super().__init__("PAD")    
+
+        rectangle_up = pg.rectangle(( Pad_width, Pad_height), Pad_layer)
+        rectangle_up.polygons[0].fillet( Pad_rounding )
+        rectangle_up.movex(-0.5*Pad_width)
+        #rectangle_up.add_port(name = 'Junction_up', midpoint = [0., 0], width = 10, orientation = -90)
+        rectangle_up.movey(0.5*Pad_gap)
+        self.metal.add_ref( rectangle_up )
+
+        rectangle_down = pg.rectangle(( Pad_width, Pad_height), Pad_layer)
+        rectangle_down.polygons[0].fillet( Pad_rounding )
+        rectangle_down.mirror(p1 = (0, 0), p2 = (200, 0))
+        rectangle_down.movex(-0.5*Pad_width)
+        #rectangle_down.add_port(name = f'LaunchPad{self.id}_{str(Pad_gap)}', midpoint = [0, 0.], width = Pad_gap, orientation = 90)
+        #rectangle_down.add_port(name = 'Junction_down', midpoint = [0., 0], width = 10, orientation = 90)
+        rectangle_down.movey(-0.5*Pad_gap)
+        self.metal.add_ref( rectangle_down )
+        # self.device.center = (0, 0)
+        
+        pocket_width = 100
+        pocket = pg.rectangle(( Pad_width+2*pocket_width, 2*Pad_height+Pad_gap+2*pocket_width), Pad_layer)
+        pocket.center = (0,0)
+        pocket.add_port(
+            name = f'LaunchPad{self.id}_{str(Pad_gap)}', 
+            midpoint = [0, -0.5*Pad_gap], 
+            width = Pad_gap, 
+            orientation = 90
+        )   
+        self.pocket.add_ref(pocket)
+
+        self.device.add_ref( boolean_with_ports(self.pocket, self.metal, "not", layer = Pad_layer) )
 
 class device_FeedLine(BaseDevice):
     def __init__(self):
@@ -130,30 +170,52 @@ class device_FeedLine(BaseDevice):
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
 class device_FeedLine_Tc(BaseDevice):
-    def __init__(self):
+    def __init__(self, open_to_ground = False):
         # make 2 pads
         super().__init__("feedline")
 
         FeedLine_length = 2200
         LP_in = device_LaunchPad()
         LP_in.xmin = 0
-        LP_in.rotate(90).movey(0.5*FeedLine_length)    
-        LP_out = device_LaunchPad()
-        LP_out.xmin = 0
-        LP_out.rotate(-90).movey(-0.5*FeedLine_length)
-        self.add_ref(LP_in)
-        self.add_ref(LP_out)
+        LP_in.rotate(90).movey(0.5*FeedLine_length)
 
         X = CrossSection()
         X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
         X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-        D3 = pr.route_smooth(LP_in.device.ports['out'], LP_out.device.ports['out'], width = X)
-        D4 = pr.route_smooth(LP_in.pocket.ports['out'], LP_out.pocket.ports['out'])
-        # X.add(width=LaunchPad_trace_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = )
 
-        self.device.add_ref(D3)
-        self.pocket.add_ref(D4)
+        device_ref, metal_ref, pocket_ref = self.add_ref(LP_in)
+
+        if open_to_ground:    
+            P = Path()
+            straight = pp.straight(length = FeedLine_length)
+            P.append([ straight ])
+
+            D3 = P.extrude(X)
+            D4 = P.extrude(LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, layer = LaunchPad_layer)
+
+            D3.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
+            D4.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
+
+            D3 = self.device.add_ref( D3 )
+            D3.connect(port = 'out1', destination = device_ref.ports['out'])
+        
+            D4 = self.pocket.add_ref( D4 )
+            D4.connect(port = 'out1', destination = pocket_ref.ports['out'])
+        else:
+            LP_out = device_LaunchPad()
+            LP_out.xmin = 0
+            LP_out.rotate(-90).movey(-0.5*FeedLine_length)
+            self.add_ref(LP_out)
+
+            D3 = pr.route_smooth(LP_in.device.ports['out'], LP_out.device.ports['out'], width = X)
+            D4 = pr.route_smooth(LP_in.pocket.ports['out'], LP_out.pocket.ports['out'])
+            # X.add(width=LaunchPad_trace_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = )
+
+            self.device.add_ref(D3)
+            self.pocket.add_ref(D4)
+
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+
 
 class device_EntangleLine(BaseDevice):
     def __init__(self, config):
