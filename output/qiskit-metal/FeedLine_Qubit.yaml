@@ -15,10 +15,10 @@ Qubit:
   ports:
     LaunchPad0:
       start:
-      - -2991.0
+      - -2990.5
       - -10.0
       end:
-      - -2991.0
+      - -2990.5
       - 10.0
       width: 20.0
       gap: 20.0

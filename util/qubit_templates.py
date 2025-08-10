@@ -151,9 +151,9 @@ class device_LaunchPad(BaseDevice):
         components["trace_pocket"].connect(port = 'connect', destination = components["pad_pocket"].ports['connect'])        
 
         self.device.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)
-        self.pocket.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)    
-        print(self.center)    
+        self.pocket.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)     
         self.center = (0,0)
+        self.xmin = 0
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
@@ -191,36 +191,35 @@ class device_Pad(BaseDevice):
 
         self.device.add_ref( boolean_with_ports(self.pocket, self.metal, "not", layer = Pad_layer) )
 
-class device_FeedLine(BaseDevice):
-    def __init__(self):
-        # make 2 pads
-        super().__init__("feedline")    
+# class device_FeedLine(BaseDevice):
+#     def __init__(self):
+#         # make 2 pads
+#         super().__init__("feedline")    
 
-        LP_in = device_LaunchPad()
-        LP_in.move((750, 2025))
-        LP_out = device_LaunchPad()
-        LP_out.rotate(90).move((1950, 800))
-        self.add_ref(LP_in)
-        self.add_ref(LP_out)
+#         LP_in = device_LaunchPad()
+#         LP_in.move((750, 2025))
+#         LP_out = device_LaunchPad()
+#         LP_out.rotate(90).move((1950, 800))
+#         self.add_ref(LP_in)
+#         self.add_ref(LP_out)
 
-        D4 = pr.route_smooth(LP_in.pocket.ports['out'], LP_out.pocket.ports['out'], radius=100, path_type='J', length1=790, length2=768, smooth_options={'corner_fun': pp.arc}, layer = LaunchPad_layer)
+#         D4 = pr.route_smooth(LP_in.pocket.ports['out'], LP_out.pocket.ports['out'], radius=100, path_type='J', length1=790, length2=768, smooth_options={'corner_fun': pp.arc}, layer = LaunchPad_layer)
 
-        X = CrossSection()
-        X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-        X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-        D3 = pr.route_smooth(LP_in.device.ports['out'], LP_out.device.ports['out'], width = X, radius=100, path_type='J', length1=790, length2=768, smooth_options={'corner_fun': pp.arc})
+#         X = CrossSection()
+#         X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+#         X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+#         D3 = pr.route_smooth(LP_in.device.ports['out'], LP_out.device.ports['out'], width = X, radius=100, path_type='J', length1=790, length2=768, smooth_options={'corner_fun': pp.arc})
         
-        self.device.add_ref(D3)
-        self.pocket.add_ref(D4)
-        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+#         self.device.add_ref(D3)
+#         self.pocket.add_ref(D4)
+#         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
-class device_FeedLine_Tc(BaseDevice):
+class device_FeedLine(BaseDevice):
     def __init__(self):
         # make 2 pads
         super().__init__("feedline")
 
         LP_in = globals()[f"device_{FeedLine_input_type}"]()
-        LP_in.xmin = 0
         LP_in.rotate(FeedLine_input_angle).move(FeedLine_input_pos)
 
         X_device = CrossSection()
@@ -233,7 +232,6 @@ class device_FeedLine_Tc(BaseDevice):
         device_ref, metal_ref, pocket_ref = self.add_ref(LP_in)
 
         LP_out = globals()[f"device_{FeedLine_output_type}"]()
-        LP_out.xmin = 0
         LP_out.rotate(FeedLine_output_angle).move(FeedLine_output_pos)
 
         if FeedLine_path_type == "extrude":
@@ -337,7 +335,7 @@ class device_DCLine(BaseDevice):
         super().__init__("DCLine")
 
         LP = device_LaunchPad()
-        LP.move((1950, -1300))
+        LP.move((1650, -1300))
         device_ref, metal_ref, pocket_ref = self.add_ref(LP)
 
         P = Path()

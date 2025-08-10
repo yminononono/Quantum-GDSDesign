@@ -15,6 +15,26 @@ LaunchPad:
     gap:
       width: 11
 
+FeedLine:
+  input:
+    type: "LaunchPad"
+    pos: [450, 2025] # [750, 2025]
+    angle: 0
+  output:
+    type: "LaunchPad"
+    pos: [1950, 500] # [1950, 800]
+    angle: 90
+
+  ## If you just want to connect the input and output port,
+  ## this is the easiest way.
+  ## options are listed in https://phidl.readthedocs.io/en/latest/tutorials/routing.html#List-of-routing-path-types
+
+  path:
+    type: "J"
+    length1: 790
+    length2: 768
+    radius: 100
+
 Frame:
   layer: 25
   width: 100
