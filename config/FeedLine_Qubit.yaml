@@ -1,4 +1,7 @@
 # Unit in [um]
+FeedLine_Qubit:
+  distance: 2000
+
 Pad:
   layer: 1
   width: 250
@@ -22,6 +25,8 @@ FeedLine:
 
   path:
     type: "straight"
+    length1: None
+    length2: None
     radius: 10
 
   ## This is probably the best way to make a user defined

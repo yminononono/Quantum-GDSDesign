@@ -31,6 +31,9 @@ FeedLine:
 
   # path:
   #   type: "straight"
+  #   length1: None
+  #   length2: None
+  #   radius: None
 
   ## This is probably the best way to make a user defined
   ## complex meander. You can extract the position to place

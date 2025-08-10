@@ -94,6 +94,28 @@ class device_ShortToGround(BaseDevice):
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
+class device_OpenToGround(BaseDevice):
+    def __init__(self):
+        
+        super().__init__("open")
+
+        # LP oriented in x direction (x = length, y = width)
+        components = {}
+        pocket_width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width
+        components["open"] = pg.rectangle(size = (1, LaunchPad_trace_width)).movey(-0.5*LaunchPad_trace_width)
+        components["opengap"] = pg.rectangle(size = (1 + LaunchPad_trace_gap_width, pocket_width)).movey(-0.5*pocket_width)
+        components["open_device"] = boolean_with_ports(components["opengap"], components["open"], "not", layer = LaunchPad_layer)
+        components["open_pocket"] = boolean_with_ports(components["opengap"], components["open"], "or", layer = LaunchPad_layer)
+      
+        components["open_device"] = self.device.add_ref( components["open_device"] )
+        components["open_pocket"] = self.pocket.add_ref( components["open_pocket"] )            
+
+        self.device.add_port(name = 'out', midpoint = [0, 0.], width = pocket_width, orientation = 180)
+        self.pocket.add_port(name = 'out', midpoint = [0, 0.], width = pocket_width, orientation = 180)        
+        self.center = (0,0)
+
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+
 class device_LaunchPad(BaseDevice):
     def __init__(self):
         
@@ -129,7 +151,8 @@ class device_LaunchPad(BaseDevice):
         components["trace_pocket"].connect(port = 'connect', destination = components["pad_pocket"].ports['connect'])        
 
         self.device.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)
-        self.pocket.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)        
+        self.pocket.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)    
+        print(self.center)    
         self.center = (0,0)
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
@@ -196,7 +219,7 @@ class device_FeedLine_Tc(BaseDevice):
         # make 2 pads
         super().__init__("feedline")
 
-        LP_in = device_LaunchPad()
+        LP_in = globals()[f"device_{FeedLine_input_type}"]()
         LP_in.xmin = 0
         LP_in.rotate(FeedLine_input_angle).move(FeedLine_input_pos)
 
@@ -209,10 +232,7 @@ class device_FeedLine_Tc(BaseDevice):
 
         device_ref, metal_ref, pocket_ref = self.add_ref(LP_in)
 
-        if FeedLine_output_type == "LaunchPad":
-            LP_out = device_LaunchPad()
-        elif FeedLine_output_type == "ShortToGround":
-            LP_out = device_ShortToGround()
+        LP_out = globals()[f"device_{FeedLine_output_type}"]()
         LP_out.xmin = 0
         LP_out.rotate(FeedLine_output_angle).move(FeedLine_output_pos)
 
@@ -263,6 +283,7 @@ class device_FeedLine_Tc(BaseDevice):
                                     path_type='manual', 
                                     manual_path=manual_path,
                                     radius = FeedLine_path_radius, 
+                                    layer = LaunchPad_layer,
                                     smooth_options={'corner_fun': pp.arc})
             
             self.device.add_ref(D3)
@@ -274,11 +295,15 @@ class device_FeedLine_Tc(BaseDevice):
                                  LP_out.device.ports['out'], 
                                  width = X_device, 
                                  path_type = FeedLine_path_type, 
+                                 length1 = FeedLine_path_length1,
+                                 length2 = FeedLine_path_length2,
                                  radius = FeedLine_path_radius,
                                  smooth_options={'corner_fun': pp.arc})
             D4 = pr.route_smooth(LP_in.pocket.ports['out'], 
                                  LP_out.pocket.ports['out'], 
                                  path_type = FeedLine_path_type,
+                                 length1 = FeedLine_path_length1,
+                                 length2 = FeedLine_path_length2,
                                  radius = FeedLine_path_radius,
                                  smooth_options={'corner_fun': pp.arc})
 
