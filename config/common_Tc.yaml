@@ -138,8 +138,27 @@ EBMarker:
 
 
 Grid:
-  lines: 20
-  frequency: [[6500, 7500], [7000, 8000], [7500, 8500], [8000, 9000]]
+  lines:
+    x: 12
+    y: 10
+  sweep:
+
+    ## If you have many parameters to sweep, use gridsweep to make a 2D array
+    ## The example below has different resonator length for each row
+    # type: "gridsweep"
+    # dummy: [0, 0, 0, 0]
+    # frequency: [[6500, 7500], [7000, 8000], [7500, 8500], [8000, 9000]]
+    
+    ## More manual way to place chip designs
+    ## Place arguments in the array, where you want samples
+    ## Put "null" if you want an empty cell
+    type: "array"
+    array: [
+      [[6500, 7500], null        , [6500, 7500], null        ],
+      [[7000, 8000], null        , [7000, 8000], null        ], 
+      [null        , [7500, 8500], null        , [7500, 8500]],
+      [null        , [8000, 9000], null        , [8000, 9000]],
+    ]
   gap:
     x: 1
     y: 1

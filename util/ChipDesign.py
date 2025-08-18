@@ -13,6 +13,9 @@ def chipdesign_TcSample(frequency):
     FM.center = (0, 0)
     chipdesign.add_ref(FM)
 
+    if frequency is None:
+        return chipdesign
+
     # Feed line
     FL = device_FeedLine()
     chipdesign.add_ref(FL.device)
@@ -30,7 +33,7 @@ def chipdesign_TcSample(frequency):
         n_step = 3, 
         transmon = False, 
         mirror = True, 
-        print_length = True, 
+        print_length = False, 
         norm_to_length = calculate_resonator_length(frequency = frequency[0], material = "silicon"),
         #norm_to_length = 3250
     )
