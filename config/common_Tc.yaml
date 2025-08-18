@@ -29,23 +29,23 @@ FeedLine:
   ## this is the easiest way.
   ## options are listed in https://phidl.readthedocs.io/en/latest/tutorials/routing.html#List-of-routing-path-types
 
-  # path:
-  #   type: "straight"
-  #   length1: None
-  #   length2: None
-  #   radius: None
+  path:
+    type: "straight"
+    length1: None
+    length2: None
+    radius: None
 
   ## This is probably the best way to make a user defined
   ## complex meander. You can extract the position to place
   ## resonators next to the feedline by using the path points.
-  path:
-    type: "manual"
-    radius: 40
-    points:
-      - [-400, 100]
-      - [300, 100]
-      - [300, -100]
-      - [-400, -100]   
+  # path:
+  #   type: "manual"
+  #   radius: 40
+  #   points:
+  #     - [-400, 100]
+  #     - [300, 100]
+  #     - [300, -100]
+  #     - [-400, -100]   
 
   ## You can make a complex meander by the "extrude" option, 
   ## but this is not recommended since it is difficult to
@@ -60,6 +60,8 @@ FeedLine:
   #     - ["right", 100]
   #     - ["straight", 400]    
     
+Feedline_Resonator:
+  gap: 13 
 
 Frame:
   layer: 25
@@ -136,8 +138,8 @@ EBMarker:
 
 
 Grid:
-  width: [0.105, 0.115, 0.125]
-  height: [10, 10, 10, 10, 10, 10, 10, 10]
+  lines: 20
+  frequency: [[6500, 7500], [7000, 8000], [7500, 8500], [8000, 9000]]
   gap:
     x: 1
     y: 1
