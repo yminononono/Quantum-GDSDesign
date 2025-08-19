@@ -6,15 +6,29 @@ jobs:
   test-notebooks:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v3
 
-      - name: Set up Conda
+      - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          activate-environment: test-env
-          environment-file: environment.yml
+          auto-update-conda: true
           python-version: 3.11.11
+          activate-environment: test
+          environment-file: ""
           auto-activate-base: false
+
+      - name: Configure conda channels
+        run: |
+          conda config --add channels conda-forge
+          conda config --set channel_priority strict
+
+      - name: Install tools
+        run: |
+          conda install -y phidl
+          conda install -y matplotlib
+          conda install -y pyyaml
+          conda install -y scipy
 
       - name: Install Jupyter tools
         run: |
