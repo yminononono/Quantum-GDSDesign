@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test-notebooks:
-    runs-on: macos-15
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -12,10 +12,20 @@ jobs:
       - name: Set up Miniconda
         uses: conda-incubator/setup-miniconda@v3
         with:
+          channels: conda-forge
+          channel-priority: strict
           auto-update-conda: true
-          python-version: 3.11.11
+          python-version: 3.11
           auto-activate-base: false
-          environment-file: environment.yml
+          activate-environment: phidl
+
+      - name: Install dependencies
+        run: |
+          conda activate phidl
+          conda install -y phidl
+          conda install -y matplotlib
+          conda install -y pyyaml
+          conda install -y scipy
 
       - name: Install Jupyter tools
         run: |
