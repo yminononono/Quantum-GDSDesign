@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   test-notebooks:
-    runs-on: ubuntu-latest
+    runs-on: macos-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -14,20 +14,8 @@ jobs:
         with:
           auto-update-conda: true
           python-version: 3.11.11
-          activate-environment: test
           auto-activate-base: false
-
-      - name: Configure conda channels
-        run: |
-          conda config --add channels conda-forge
-          conda config --set channel_priority strict
-
-      - name: Install tools
-        run: |
-          conda install -y phidl
-          conda install -y matplotlib
-          conda install -y pyyaml
-          conda install -y scipy
+          environment-file: environment.yml
 
       - name: Install Jupyter tools
         run: |
