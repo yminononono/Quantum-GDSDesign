@@ -1,0 +1,29 @@
+name: Test Notebooks
+
+on: [push, pull_request]
+
+jobs:
+  test-notebooks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          activate-environment: test-env
+          environment-file: environment.yml
+          python-version: 3.11.11
+          auto-activate-base: false
+
+      - name: Install Jupyter tools
+        run: |
+          conda install -y jupyter nbconvert
+
+      - name: Install test deps
+        run: |
+          pip install pytest nbmake
+
+      - name: Run notebook tests
+        run: |
+          pytest --nbmake $(find . -name "*.ipynb")
