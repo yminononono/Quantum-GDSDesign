@@ -15,7 +15,6 @@ jobs:
           auto-update-conda: true
           python-version: 3.11.11
           activate-environment: test
-          environment-file: ""
           auto-activate-base: false
 
       - name: Configure conda channels
