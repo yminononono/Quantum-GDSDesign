@@ -21,7 +21,6 @@ jobs:
 
       - name: Install dependencies
         run: |
-          conda activate phidl
           conda install -y phidl
           conda install -y matplotlib
           conda install -y pyyaml
