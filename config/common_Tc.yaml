@@ -138,6 +138,7 @@ EBMarker:
 
 
 Grid:
+  layer: 9
   lines:
     x: 12
     y: 10

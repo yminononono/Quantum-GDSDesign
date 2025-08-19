@@ -888,6 +888,14 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             JJ.add_ref( pg.copy(JJ_half).mirror(p1 = (-5, -18), p2 = (5, -18)) ) 
             JJ.center = (0,0)
 
+            # Make additional finger for bilayer sample
+            finger_horizontal = pg.rectangle((0.5*finger_length, finger_width), finger_layer)
+            finger_horizontal.center = (0, 0)
+            finger_horizontal1 = JJ.add_ref( finger_horizontal )
+            finger_horizontal1.movex(0.45*finger_length)
+            finger_horizontal2 = JJ.add_ref( finger_horizontal )
+            finger_horizontal2.movex(-0.45*finger_length)
+
         if (JJtype == "dl" or JJtype == "dolan") and bandage:
             finger_width = finger_width_var
             finger_length = 1.5
@@ -1129,27 +1137,27 @@ def device_DicingMarkers(width = 100, length = 400, layer = 3):
     DicingMarkers.add_ref(marker)
     return DicingMarkers
 
-def device_Grid(inch = 4, n_gridline = 20):
+def device_Grid(inch = 4):
     grid = Device("Grid")
     wafer_radius = 0.5 * inch * 25.4 * 1e3 # inch to um
-    device_list_perp = [pg.rectangle(size = (Frame_width, 2*wafer_radius), layer = 25) for i in range(n_gridline)]
-    device_list_horiz = [pg.rectangle(size = (2*wafer_radius, Frame_width), layer = 25) for i in range(n_gridline)]
+    device_list_perp = [pg.rectangle(size = (Frame_width, 2*wafer_radius), layer = Grid_layer) for i in range(Grid_lines_x)]
+    device_list_horiz = [pg.rectangle(size = (2*wafer_radius, Frame_width), layer = Grid_layer) for i in range(Grid_lines_y)]
     grid_perp = pg.grid(device_list_perp,
                 spacing = (Frame_width + Frame_size_width, 0),
                 separation = False,
-                shape = (n_gridline,1))
+                shape = (Grid_lines_x,1))
     grid_perp.center = (0, 0)
     grid_horiz = pg.grid(device_list_horiz,
                 spacing = (0, Frame_width + Frame_size_height),
                 separation = False,
-                shape = (1, n_gridline)) 
+                shape = (1, Grid_lines_y)) 
     grid_horiz.center = (0, 0)
     circle = pg.circle(radius = wafer_radius, angle_resolution = 2.5, layer = 21)
     inv_circle = pg.invert(circle, border = 7000, precision = 1e-6, layer = 21)
     grid_perp = pg.boolean(A = grid_perp, B = inv_circle, operation = 'not', precision = 1e-6,
-                num_divisions = [1,1], layer = 25)
+                num_divisions = [1,1], layer = Grid_layer)
     grid_horiz = pg.boolean(A = grid_horiz, B = inv_circle, operation = 'not', precision = 1e-6,
-                num_divisions = [1,1], layer = 25)    
+                num_divisions = [1,1], layer = Grid_layer)    
     grid.add_ref( grid_perp )
     grid.add_ref( grid_horiz )    
     return grid
