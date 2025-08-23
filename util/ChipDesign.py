@@ -11,7 +11,7 @@ def init_chipdesign(config, param_x, param_y, x, y):
     else:
         raise ValueError(f"{param_x} or {param_y} is not in config dictionary!!")
 
-def sweep_chipdesign( config ):
+def sweep_chipdesign( config, userfunction = None ):
 
     def custom_design(n_level, param_x, param_y, x, y):
         
@@ -23,7 +23,10 @@ def sweep_chipdesign( config ):
         array = config["Grid_sweep_array"][n_level]
 
         if n_level == 0:
-            function = globals()["chipdesign_" + config["Grid_name"]]
+            if userfunction:
+                function = userfunction
+            else:
+                function = globals()["chipdesign_" + config["Grid_name"]]
             param_defaults = { 'config' : config }
         else:
             function = custom_design
@@ -76,7 +79,10 @@ def sweep_chipdesign( config ):
         array = config["Grid_sweep_array"][n_level]
 
         if n_level == 0:
-            function = globals()["chipdesign_" + config["Grid_name"]]
+            if userfunction:
+                function = userfunction
+            else:
+                function = globals()["chipdesign_" + config["Grid_name"]]
             param_defaults = { 'config' : config }
         else:
             function = custom_design

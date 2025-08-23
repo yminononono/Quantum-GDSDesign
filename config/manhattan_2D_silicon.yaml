@@ -1,0 +1,25 @@
+# Unit in [um]
+
+JJ:
+  type: "manhattan"
+  squid: false
+  photolitho: false
+  bandage: false
+
+  rounding: 0 # 0.05
+  finger:
+    layer: 1
+    length: 10
+    width: 0.15
+    rounding: 0
+  pad_box:
+    width: 2.0
+    length: 10
+    gap: 4.0
+  bridge:
+    width: 0.9
+  taper:
+    width1: 10
+    width2: 40
+    length: 100
+    gap: 10

@@ -36,12 +36,15 @@ FeedLine:
     length2: 768
     radius: 100
 
+Feedline_Resonator:
+  gap: 13 
+
 Frame:
   layer: 25
-  width: 100
+  width: 50
   size:
-    height: 4700
-    width: 4700
+    height: 4800
+    width: 4800
 
 DCLine:
   radius: 100
@@ -110,12 +113,18 @@ EBMarker:
     - [-38400,      0]
 
 Grid:
+  name: "transmon2D"
   layer: 9
   lines:
     x: 20
     y: 20
-  width: [0.105, 0.115, 0.125, 0.135, 0.145, 0.155, 0.165]
-  height: [10, 10, 10, 10, 10, 10, 10, 10]
-  gap:
-    x: 1
-    y: 1
+  sweep:
+    ## If you have many parameters to sweep, use gridsweep to make a 2D array
+    type: "gridsweep"
+    array:
+      - param_x: "JJ_finger_width"
+        param_y: "dummy"
+        x: [0.105, 0.115, 0.125, 0.135, 0.145, 0.155, 0.165]
+        y: [0, 0, 0, 0, 0, 0, 0, 0]
+        gap_x: 1
+        gap_y: 1

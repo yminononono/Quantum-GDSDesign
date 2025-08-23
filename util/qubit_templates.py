@@ -351,16 +351,16 @@ class device_EntangleLine(BaseDevice):
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = 4) )
 
 class device_DCLine(BaseDevice):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__("DCLine")
 
-        LP = device_LaunchPad()
+        LP = device_LaunchPad(config)
         LP.move((1650, -1300))
         device_ref, metal_ref, pocket_ref = self.add_ref(LP)
 
         P = Path()
-        left_turn = pp.arc(radius = DCLine_radius, angle = 90)
-        right_turn = pp.arc(radius = DCLine_radius, angle = -90)
+        left_turn = pp.arc(radius = config["DCLine_radius"], angle = 90)
+        right_turn = pp.arc(radius = config["DCLine_radius"], angle = -90)
         straight1 = pp.straight(length = 235)
         straight2 = pp.straight(length = 805)
         straight3 = pp.straight(length = 2973)
@@ -378,14 +378,14 @@ class device_DCLine(BaseDevice):
 
         X = CrossSection()
         # X.add(width=LaunchPad_trace_width, offset = 0., layer = 1)
-        X.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-        X.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        X.add(width=config["LaunchPad_trace_gap_width"], offset = 0.5*(config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"]), layer = config["LaunchPad_layer"])
+        X.add(width=config["LaunchPad_trace_gap_width"], offset = -0.5*(config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"]), layer = config["LaunchPad_layer"])
 
         DCLine_device = P.extrude(X)
-        DCLine_pocket = P.extrude(LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, layer = LaunchPad_layer)
+        DCLine_pocket = P.extrude(config["LaunchPad_trace_width"] + 2*config["LaunchPad_trace_gap_width"], layer = config["LaunchPad_layer"])
 
-        DCLine_device.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
-        DCLine_pocket.add_port(name = 'out1', midpoint = [0., 0.], width = LaunchPad_trace_width, orientation = 180)
+        DCLine_device.add_port(name = 'out1', midpoint = [0., 0.], width = config["LaunchPad_trace_width"], orientation = 180)
+        DCLine_pocket.add_port(name = 'out1', midpoint = [0., 0.], width = config["LaunchPad_trace_width"], orientation = 180)
 
         print(self.device)
         DCLine_device = self.device.add_ref( DCLine_device )
@@ -394,7 +394,7 @@ class device_DCLine(BaseDevice):
         DCLine_pocket = self.pocket.add_ref( DCLine_pocket )
         DCLine_pocket.connect(port = 'out1', destination = pocket_ref.ports['out'])
 
-        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["LaunchPad_layer"]) )
 
 def device_CornerPoints(config):
     CP = Device("CornerPoints")
@@ -405,7 +405,7 @@ def device_CornerPoints(config):
         cp.center = center
     return CP
 
-def device_TestAreas(DCLine = False):
+def device_TestAreas(config, DCLine = False):
 
     if DCLine:
         point_pos = [(-1493.5, -1181.413), (-1493.5, -1831.408), (-843.5, -1181.413), (-843.5, -1831.408)]
@@ -414,31 +414,31 @@ def device_TestAreas(DCLine = False):
 
     TPs = Device("TestPoints")
     TP = Device("TestPoint")   
-    box = pg.bbox([(-0.5*TestPoint_box_width,-TestPoint_box_length),(0.5*TestPoint_box_width,0)], layer = TestPoint_layer)
-    box = pg.invert(box, border = TestPoint_box_gap_width, precision = 1e-6, layer = TestPoint_layer)
+    box = pg.bbox([(-0.5*config["TestPoint_box_width"],-config["TestPoint_box_length"]),(0.5*config["TestPoint_box_width"],0)], layer = config["TestPoint_layer"])
+    box = pg.invert(box, border = config["TestPoint_box_gap_width"], precision = 1e-6, layer = config["TestPoint_layer"])
 
-    stub = pg.bbox([(-0.5*TestPoint_stub_width, 0),(0.5*TestPoint_stub_width, TestPoint_stub_length)], layer = TestPoint_layer)
-    box = pg.boolean(box, stub, 'not', layer = TestPoint_layer)
+    stub = pg.bbox([(-0.5*config["TestPoint_stub_width"], 0),(0.5*config["TestPoint_stub_width"], config["TestPoint_stub_length"])], layer = config["TestPoint_layer"])
+    box = pg.boolean(box, stub, 'not', layer = config["TestPoint_layer"])
     TP.add_ref(box)  
 
     polpoints = [
-        ( -0.5*TestPoint_stub_width-TestPoint_stub_gap_width, TestPoint_box_gap_width                 ),
-        ( -0.5*TestPoint_stub_width-TestPoint_stub_gap_width, TestPoint_stub_length + TestPoint_stub_gap_length ),
-        (  0.5*TestPoint_stub_width+TestPoint_stub_gap_width, TestPoint_stub_length + TestPoint_stub_gap_length ),
-        (  0.5*TestPoint_stub_width+TestPoint_stub_gap_width, TestPoint_box_gap_width                 ),
-        (  0.5*TestPoint_stub_width                         , TestPoint_box_gap_width                 ),
-        (  0.5*TestPoint_stub_width                         , TestPoint_stub_length                   ),
-        ( -0.5*TestPoint_stub_width                         , TestPoint_stub_length                   ),
-        ( -0.5*TestPoint_stub_width                         , TestPoint_box_gap_width                 ),
+        ( -0.5*config["TestPoint_stub_width"]-config["TestPoint_stub_gap_width"], config["TestPoint_box_gap_width"]                 ),
+        ( -0.5*config["TestPoint_stub_width"]-config["TestPoint_stub_gap_width"], config["TestPoint_stub_length"] + config["TestPoint_stub_gap_length"] ),
+        (  0.5*config["TestPoint_stub_width"]+config["TestPoint_stub_gap_width"], config["TestPoint_stub_length"] + config["TestPoint_stub_gap_length"] ),
+        (  0.5*config["TestPoint_stub_width"]+config["TestPoint_stub_gap_width"], config["TestPoint_box_gap_width"]                 ),
+        (  0.5*config["TestPoint_stub_width"]                         , config["TestPoint_box_gap_width"]                 ),
+        (  0.5*config["TestPoint_stub_width"]                         , config["TestPoint_stub_length"]                   ),
+        ( -0.5*config["TestPoint_stub_width"]                         , config["TestPoint_stub_length"]                   ),
+        ( -0.5*config["TestPoint_stub_width"]                         , config["TestPoint_box_gap_width"]                 ),
     ]
     TP.add_polygon(polpoints)
-    TP = pg.union(TP, by_layer = False, layer = TestPoint_layer)
+    TP = pg.union(TP, by_layer = False, layer = config["TestPoint_layer"])
     qp(TP)
 
     for center in point_pos:
         tp = TPs.add_ref( TP )
-        tp.xmin = center[0] - 0.5*TestPoint_box_width - TestPoint_box_gap_width
-        tp.ymin = center[1] - 0.5*TestPoint_box_length - TestPoint_box_gap_width
+        tp.xmin = center[0] - 0.5*config["TestPoint_box_width"] - config["TestPoint_box_gap_width"]
+        tp.ymin = center[1] - 0.5*config["TestPoint_box_length"] - config["TestPoint_box_gap_width"]
 
     return TPs
 
@@ -1079,23 +1079,23 @@ def device_JJ( config ):
 
     return JJ
 
-def device_EBLine():
+def device_EBLine(config):
     EBLine=Device('EBLine')
 
-    box = pg.rectangle((EBLine_box_width, EBLine_box_width), EBLine_box_layer)
+    box = pg.rectangle((config["EBLine_box_width"], config["EBLine_box_width"]), config["EBLine_box_layer"])
     box.movex(-box.center[0])
-    box.add_port(name = 'out', midpoint = [0, EBLine_box_overlay], width = EBLine_finger_outer_width, orientation = 270)
+    box.add_port(name = 'out', midpoint = [0, config["EBLine_box_overlay"]], width = config["EBLine_finger_outer_width"], orientation = 270)
 
     # finger
-    finger_outer = pg.rectangle((EBLine_finger_outer_width, EBLine_finger_outer_length), EBLine_finger_layer)
+    finger_outer = pg.rectangle((config["EBLine_finger_outer_width"], config["EBLine_finger_outer_length"]), config["EBLine_finger_layer"])
     finger_outer.movex(-finger_outer.center[0])
-    finger_outer.add_port(name = 'in', midpoint = [0, EBLine_finger_outer_length], width = EBLine_finger_outer_width, orientation = 90)
-    finger_outer.add_port(name = 'out', midpoint = [0, 0], width = EBLine_finger_outer_width, orientation = 270)
+    finger_outer.add_port(name = 'in', midpoint = [0, config["EBLine_finger_outer_length"]], width = config["EBLine_finger_outer_width"], orientation = 90)
+    finger_outer.add_port(name = 'out', midpoint = [0, 0], width = config["EBLine_finger_outer_width"], orientation = 270)
 
-    finger_inner = pg.rectangle((EBLine_finger_inner_width, EBLine_finger_inner_length), EBLine_finger_layer)
+    finger_inner = pg.rectangle((config["EBLine_finger_inner_width"], config["EBLine_finger_inner_length"]), config["EBLine_finger_layer"])
     finger_inner.movex(-finger_inner.center[0])
-    finger_inner.add_port(name = 'in', midpoint = [0, EBLine_finger_inner_length], width = EBLine_finger_inner_width, orientation = 90)
-    finger_inner.add_port(name = 'out', midpoint = [0, 0], width = EBLine_finger_inner_width, orientation = 270)
+    finger_inner.add_port(name = 'in', midpoint = [0, config["EBLine_finger_inner_length"]], width = config["EBLine_finger_inner_width"], orientation = 90)
+    finger_inner.add_port(name = 'out', midpoint = [0, 0], width = config["EBLine_finger_inner_width"], orientation = 270)
 
     box_up = EBLine.add_ref( box )
     box_down = EBLine.add_ref( box )    
