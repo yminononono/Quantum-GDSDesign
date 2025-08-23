@@ -68,8 +68,8 @@ def sweep_chipdesign( config ):
                     device_list.append( devices[cell] )
         D = pg.grid(
             device_list,
-            spacing = (Grid_sweep_gap_x * Chip_size_x, Grid_sweep_gap_y * Chip_size_y),
-            shape = np.array(Grid_sweep_array, dtype=object).shape
+            spacing = (config["Grid_sweep_gap_x"] * config["Chip_size_x"], config["Grid_sweep_gap_y"] * config["Chip_size_y"]),
+            shape = np.array(config["Grid_sweep_array"], dtype=object).shape
         )
     elif config["Grid_sweep_type"] == "gridsweep":
         n_level = len(config["Grid_sweep_array"]) - 1
