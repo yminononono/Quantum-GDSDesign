@@ -58,21 +58,21 @@ Grid:
       - param_x: "JJ_finger_width"
         param_y: "dummy"
         x: [0.10, 0.12, 0.14, 0.16, null, 0.18, 0.20, 0.25, 0.3]
-        y: [0.3, 0.3, null, 0.3, 0.3]
+        y: [0.3, 0.3, 0.3]
         gap_x: 0
         gap_y: 0
+      - param_x : "Pad_width"
+        param_y : "Pad_height"
+        x: [250, 400]
+        y: [400, 500, 600, 700, 800]
+        gap_x: 1
+        gap_y: 1
       - param_x : "JJ_squid"
         param_y : "dummy"
         x: [true, false]
         y: [0]
         gap_x: 1
         gap_y: 1
-      - param_x : "Pad_width"
-        param_y : "Pad_height"
-        x: [250, 400]
-        y: [400, 600]
-        gap_x: 8
-        gap_y: 2
 
     ## More manual way to place chip designs
     ## Place arguments in the array, where you want samples
