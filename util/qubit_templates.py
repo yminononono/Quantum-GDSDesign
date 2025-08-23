@@ -64,11 +64,11 @@ def make_Path(resonator_straight1 = 240,
     return P
 
 
-def device_Wafer(inch = 4):
+def device_Wafer(config, inch = 4):
     wafer = Device('wafer')
     wafer_radius = 0.5 * inch * 25.4 * 1e3 # inch to um
-    circle = pg.circle(radius = wafer_radius, angle_resolution = 2.5, layer = Wafer_layer)
-    inv_circle = pg.invert(circle, border = 7000, precision = 1e-6, layer = Wafer_layer)
+    circle = pg.circle(radius = wafer_radius, angle_resolution = 2.5, layer = config["Wafer_layer"])
+    inv_circle = pg.invert(circle, border = 7000, precision = 1e-6, layer = config["Wafer_layer"])
     wafer.add_ref( inv_circle )
     return wafer
 
@@ -583,12 +583,13 @@ class device_Resonator(BaseDevice):
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = Resonator_layer) )
 
-def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "manhattan", squid = False, bandage = True, photolitho = False):
+# def device_JJ( config, width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "manhattan", squid = False, bandage = True, photolitho = False):
+def device_JJ( config ):
     JJ=Device('JJ')
     JJ_half=Device('JJ_half')
 
-    if photolitho:
-        if (JJtype == "mh" or JJtype == "manhattan") and photolitho:
+    if config["JJ_photolitho"]:
+        if (config["JJ_type"] == "mh" or config["JJ_type"] == "manhattan") and config["JJ_photolitho"]:
 
             finger_rounding_radius = JJ_finger_rounding
             finger_width_outer = 2.0
@@ -614,7 +615,7 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             JJ_half.movey(-0.1/math.sqrt(2)*finger_length_inner*float(width/0.5))
             #finger_outer1.connect(port = 'out', destination = finger_inner1.ports['in'])
             
-            # if squid:
+            # if config["JJ_squid"]:
             #     finger_inner2 = JJ_half.add_ref( finger_inner ).rotate(-45).movey(-0.2/math.sqrt(2)*finger_length_inner)
             #     finger_outer2 = JJ_half.add_ref( finger_outer )
             #     finger_outer2.connect(port = 'out', destination = finger_inner2.ports['in'])
@@ -632,7 +633,7 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             JJ.polygons[0].fillet( JJ_rounding )
             JJ = pg.union(JJ)        
             
-            if squid:
+            if config["JJ_squid"]:
                 JJ.add_ref( pg.copy(JJ).movex(-10) )
             JJ.center = (0,0)
 
@@ -669,7 +670,7 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             # JJ.add_ref( JJ_half ).movey(-20)
             # JJ.add_ref( pg.copy(JJ_half).rotate(90) ).movex(20)
 
-        elif (JJtype == "dl" or JJtype == "dolan") and not bandage:
+        elif (config["JJ_type"] == "dl" or config["JJ_type"] == "dolan") and not config["JJ_bandage"]:
 
             JJ_finger_up_width = finger_width
             JJ_bridge_width = bridge_width
@@ -692,11 +693,11 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             pad_box_down = JJ_half.add_ref( pg.copy(pad_box).mirror(p1 = (-5, 0), p2 = (5, 0)) )
             
             JJ.add_ref( JJ_half )
-            if squid:
+            if config["JJ_squid"]:
                 JJ.add_ref( pg.copy(JJ).movex(-10) )
             JJ.center = (0,0)
 
-            if squid:
+            if config["JJ_squid"]:
                 JJ.add_ref(taper)
                 JJ.add_ref( pg.copy(taper).mirror(p1 = (-5, 0), p2 = (5, 0)) )
 
@@ -754,12 +755,12 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             # pad_outer_down.connect(port = 'out', destination = pad_inner_down.ports['out'])                             
 
             # JJ.add_ref( JJ_half )
-            # if squid:
+            # if config["JJ_squid"]:
             #     JJ.add_ref( pg.copy(JJ).movex(-10) )
             # JJ.center = (0,0)
 
     else:
-        if (JJtype == "mh" or JJtype == "manhattan") and bandage:
+        if (config["JJ_type"] == "mh" or config["JJ_type"] == "manhattan") and config["JJ_bandage"]:
 
             box_finger_overlay_outer = 0.68
             box_finger_overlay_inner = 0.18
@@ -835,18 +836,15 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
 
             JJ.add_ref( JJ_half )
             JJ.add_ref( pg.copy(JJ_half).mirror(p1 = (-5, -18), p2 = (5, -18)) )
-            if squid:
+            if config["JJ_squid"]:
                 JJ.add_ref( pg.copy(JJ).movex(-10) )
             JJ.center = (0,0)
 
-        elif (JJtype == "mh" or JJtype == "manhattan") and not bandage:
+        elif (config["JJ_type"] == "mh" or config["JJ_type"] == "manhattan") and not config["JJ_bandage"]:
             pad_box_width = 18
             pad_box_length = 10
             pad_triangle_length = 16
             pad_rounding_radius = 2
-
-            finger_width = width
-            finger_length = 10
 
             box_width = 1.2
             box_finger_overlay = 0.24
@@ -866,21 +864,21 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             JJ_half.polygons[0].fillet( pad_rounding_radius )
 
             # make finger
-            finger = pg.taper(length = finger_length + pad_finger_overlay, width1 = finger_width, width2 = finger_width, port = None, layer = finger_layer)
-            finger.add_port(name = 'out1', midpoint = [pad_finger_overlay, 0], width = finger_width, orientation = 180)
+            finger = pg.taper(length = config["JJ_finger_length"] + pad_finger_overlay, width1 = config["JJ_finger_width"], width2 = config["JJ_finger_width"], port = None, layer = finger_layer)
+            finger.add_port(name = 'out1', midpoint = [pad_finger_overlay, 0], width = config["JJ_finger_width"], orientation = 180)
             finger1 = JJ_half.add_ref( finger )
             finger1.connect(port = 'out1', destination = pad_triangle.ports['out1'])
-            if squid:
+            if config["JJ_squid"]:
                 finger2 = JJ_half.add_ref( finger )        
                 finger2.connect(port = 'out1', destination = pad_triangle.ports['out2'])
 
             # make box
             box = pg.rectangle((box_width, box_width), box_layer)
             box.movex(-box.center[0])
-            box.add_port(name = 'out', midpoint = [0, box_finger_overlay], width = finger_width, orientation = 270)
+            box.add_port(name = 'out', midpoint = [0, box_finger_overlay], width = config["JJ_finger_width"], orientation = 270)
             #box1 = JJ_half.add_ref( box )
             #box1.connect(port = 'out', destination = finger1.ports[2])
-            # if squid:
+            # if config["JJ_squid"]:
             #     box2 = JJ_half.add_ref( box )
             #     #box2.connect(port = 'out', destination = finger2.ports[2])
 
@@ -889,14 +887,15 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             JJ.center = (0,0)
 
             # Make additional finger for bilayer sample
-            finger_horizontal = pg.rectangle((0.5*finger_length, finger_width), finger_layer)
+            finger_horizontal = pg.rectangle((0.5*config["JJ_finger_length"], config["JJ_finger_width"]), finger_layer)
             finger_horizontal.center = (0, 0)
             finger_horizontal1 = JJ.add_ref( finger_horizontal )
-            finger_horizontal1.movex(0.45*finger_length)
-            finger_horizontal2 = JJ.add_ref( finger_horizontal )
-            finger_horizontal2.movex(-0.45*finger_length)
+            finger_horizontal1.movex(0.45*config["JJ_finger_length"])
+            if config["JJ_squid"]:
+                finger_horizontal2 = JJ.add_ref( finger_horizontal )
+                finger_horizontal2.movex(-0.45*config["JJ_finger_length"])
 
-        if (JJtype == "dl" or JJtype == "dolan") and bandage:
+        if (config["JJ_type"] == "dl" or config["JJ_type"] == "dolan") and config["JJ_bandage"]:
             finger_width = finger_width_var
             finger_length = 1.5
 
@@ -962,11 +961,11 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
                 bandage2_down[i].connect(port = 'bandage2_pad', destination = pad_down.ports[f'bandage{i}'])                        
 
             JJ.add_ref( JJ_half )
-            if squid:
+            if config["JJ_squid"]:
                 JJ.add_ref( pg.copy(JJ).movex(-10) )
             JJ.center = (0,0)
 
-        if (JJtype == "dl" or JJtype == "dolan") and not bandage:
+        if (config["JJ_type"] == "dl" or config["JJ_type"] == "dolan") and not config["JJ_bandage"]:
 
             JJ_finger_up_width = finger_width
             JJ_bridge_width = bridge_width
@@ -989,11 +988,11 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             pad_box_down = JJ_half.add_ref( pg.copy(pad_box).mirror(p1 = (-5, 0), p2 = (5, 0)) )
             
             JJ.add_ref( JJ_half )
-            if squid:
+            if config["JJ_squid"]:
                 JJ.add_ref( pg.copy(JJ).movex(-10) )
             JJ.center = (0,0)
 
-            if squid:
+            if config["JJ_squid"]:
                 JJ.add_ref(taper)
                 JJ.add_ref( pg.copy(taper).mirror(p1 = (-5, 0), p2 = (5, 0)) )
 
@@ -1051,7 +1050,7 @@ def device_JJ( width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "
             # pad_outer_down.connect(port = 'out', destination = pad_inner_down.ports['out'])                             
 
             # JJ.add_ref( JJ_half )
-            # if squid:
+            # if config["JJ_squid"]:
             #     JJ.add_ref( pg.copy(JJ).movex(-10) )
             # JJ.center = (0,0)
 
@@ -1128,11 +1127,17 @@ def device_EBmarkers(marker_pos = [(0,0),(0,38400),(-19200,-28800),(38400,0), (0
     return EBmarkers
 
 
-def device_DicingMarkers(width = 100, length = 400, layer = 3):
+def device_DicingMarkers(config):
     DicingMarkers = Device("DicingMarkers")
-    tmp1 = pg.bbox([(-0.5*width,-0.5*length), (0.5*width,0.5*length)])
-    tmp2 = pg.bbox([(-0.5*length,-0.5*width), (0.5*length,0.5*width)])    
-    marker = pg.boolean(tmp1, tmp2, 'or', layer = layer)
+    tmp1 = pg.bbox([
+        (-0.5*config["DicingMarker_width"],-0.5*config["DicingMarker_length"]), 
+        ( 0.5*config["DicingMarker_width"], 0.5*config["DicingMarker_length"])
+    ])
+    tmp2 = pg.bbox([
+        (-0.5*config["DicingMarker_length"],-0.5*config["DicingMarker_width"]), 
+        ( 0.5*config["DicingMarker_length"], 0.5*config["DicingMarker_width"])
+    ])    
+    marker = pg.boolean(tmp1, tmp2, 'or', layer = config["DicingMarker_layer"])
 
     DicingMarkers.add_ref(marker)
     return DicingMarkers

@@ -3,8 +3,15 @@
 Scripts used to produce gds designs with the [PHIDL](https://phidl.readthedocs.io/en/latest/index.html) package are placed in this repository.
 There are other packages such as [gdsfactory](https://gdsfactory.github.io/gdsfactory/index.html) and [gdstk](https://heitzmann.github.io/gdstk/) which use similar syntax.
 
-1. [Install](#Install)
-2. [Functions](#Functions)
+
+- [Quantum GDS Design](#quantum-gds-design)
+    - [Install](#install)
+        - [Conda environment](#conda-environment)
+    - [Functions](#functions)
+    - [Designs for qiskit-metal](#designs-for-qiskit-metal)
+    - [Configuration](#configuration)
+        - [Layer](#layer)
+        - [Feedline](#feedline)
 
 
 ## Install
@@ -23,6 +30,12 @@ $ conda install phidl
 $ conda install matplotlib
 $ conda install pyyaml
 $ conda install scipy
+```
+
+For Mac users, you can also use the environment.yml to setup the environment
+
+```
+$ conda env create -f environment.yml
 ```
 
 ## Functions
@@ -67,3 +80,25 @@ phidl_to_metal(
 ```
 
 After converting PHIDL to qiskit-metal designs, you can find the output files under ```output/qiskit-metal/```.
+
+
+## Configuration
+
+### Layer
+
+| Device name | Layer Number |
+| :---------- | :----------- |
+| Grid line   | 9            |
+| Wafer       | 21           |
+| Chip Frame  | 25           |
+
+
+### Feedline
+
+input & output
+- type : LaunchPad, OpenToGround, ShortToGround
+
+path
+- straight, J ...
+- manual
+- extrude

@@ -7,15 +7,16 @@ Pad:
   gap: 20 # gap between two capacitance pads
 
 JJ:
+  type: "manhattan"
+  squid: false
+  photolitho: false
+  bandage: false
+
   rounding: 0 # 0.05
   finger:
     layer: 1
-    up:
-      length: 10.0
-      width: 0.2
-    down:
-      length: 10.0
-      width: 0.3
+    length: 10
+    width: 0.15
     rounding: 0
   pad_box:
     width: 2.0
@@ -28,6 +29,7 @@ JJ:
     width2: 40
     length: 100
     gap: 10
+
 
 Pad_JJ:
   rounding: 0
@@ -44,15 +46,60 @@ Chip:
     y: 2000
 
 Grid:
-  finger_width: 
-    - [0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.3]
-    - [0.10, 0.12, 0.14, 0.16, 0.18, 0.20, 0.25, 0.3]
-  finger_height:
-    - [0.3, 0.3, 0.3, 0.3]
-    - [0.3, 0.3, 0.3, 0.3]  
-  gap:
-    x: 2
-    y: 2
+  name: "transmon3D"
+  layer: 9
+  lines:
+    x: 12
+    y: 10
+  sweep:
+    ## If you have many parameters to sweep, use gridsweep to make a 2D array
+    type: "gridsweep"
+    array:
+      - param_x: "JJ_finger_width"
+        param_y: "dummy"
+        x: [0.10, 0.12, 0.14, 0.16, null, 0.18, 0.20, 0.25, 0.3]
+        y: [0.3, 0.3, null, 0.3, 0.3]
+        gap_x: 0
+        gap_y: 0
+      - param_x : "JJ_squid"
+        param_y : "dummy"
+        x: [true, false]
+        y: [0]
+        gap_x: 1
+        gap_y: 1
+      - param_x : "Pad_width"
+        param_y : "Pad_height"
+        x: [250, 400]
+        y: [400, 600]
+        gap_x: 8
+        gap_y: 2
+
+    ## More manual way to place chip designs
+    ## Place arguments in the array, where you want samples
+    ## Put "null" if you want an empty cell
+    # type: "array"
+    # devices:
+    #   - JJ_finger_up_width: 0.10
+    #     JJ_squid: true
+    #     Pad_width : 250
+    #     Pad_height : 600
+    #   - JJ_finger_up_width: 0.15
+    #     JJ_squid: false
+    #     Pad_width : 400
+    #     Pad_height : 300
+    #   - JJ_finger_up_width: 0.15
+    #     JJ_squid: true
+    #     Pad_width : 400
+    #     Pad_height : 300
+    # array: [
+    #   [0    , null  , 1     , null],
+    #   [1    , null  , 2     , 0   ], 
+    #   [0    , 1     , 2     , null],
+    #   [1    , 0     , null  , 1   ], 
+    # ]
+    # gap_x : 1
+    # gap_y : 0
+
 
 Text:
   string: 'str(width)'
