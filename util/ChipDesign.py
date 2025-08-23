@@ -40,8 +40,8 @@ def sweep_chipdesign( config ):
             param_y = {'y' : array["y"]},
             param_defaults = param_defaults,
             spacing = (
-                array["gap_x"] * config["Chip_size_x"], 
-                array["gap_y"] * config["Chip_size_y"],
+                array["gap_x"] * config["Frame_size_width"], 
+                array["gap_y"] * config["Frame_size_height"],
             ),
             # separation = False,
             label_layer = None
@@ -68,24 +68,33 @@ def sweep_chipdesign( config ):
                     device_list.append( devices[cell] )
         D = pg.grid(
             device_list,
-            spacing = (config["Grid_sweep_gap_x"] * config["Chip_size_x"], config["Grid_sweep_gap_y"] * config["Chip_size_y"]),
+            spacing = (config["Grid_sweep_gap_x"] * config["Frame_size_width"], config["Grid_sweep_gap_y"] * config["Frame_size_height"]),
             shape = np.array(config["Grid_sweep_array"], dtype=object).shape
         )
     elif config["Grid_sweep_type"] == "gridsweep":
         n_level = len(config["Grid_sweep_array"]) - 1
         array = config["Grid_sweep_array"][n_level]
+
+        if n_level == 0:
+            function = globals()["chipdesign_" + config["Grid_name"]]
+            param_defaults = { 'config' : config }
+        else:
+            function = custom_design
+            param_defaults = { 'n_level' : n_level }
+        param_defaults = {
+            **param_defaults, 
+            'param_x' : array["param_x"],
+            'param_y' : array["param_y"],   
+        }
+
         D = pg.gridsweep(
-            function = custom_design,
+            function = function,
             param_x = {'x' : array["x"]},
             param_y = {'y' : array["y"]},
-            param_defaults = {
-                'n_level' : n_level,
-                'param_x' : array["param_x"],
-                'param_y' : array["param_y"],
-            }, 
+            param_defaults = param_defaults,
             spacing = (
-                array["gap_x"] * config["Chip_size_x"], 
-                array["gap_y"] * config["Chip_size_y"],
+                array["gap_x"] * config["Frame_size_width"], 
+                array["gap_y"] * config["Frame_size_height"],
             ),
             label_layer = None
         )
@@ -116,11 +125,7 @@ def chipdesign_transmon3D(config, param_x = None, param_y = None, x = None, y = 
 
     chipdesign = Device('chipdesign')
 
-    FM=Device('frame')
-    new_Frame_width = 0.1*config["Frame_width"]
-    rectangle = pg.rectangle((config["Chip_size_x"] - 2*new_Frame_width, config["Chip_size_y"] - 2*new_Frame_width), config["Frame_layer"])
-    FM.add_ref( pg.invert(rectangle, border = new_Frame_width, precision = 1e-6, layer = config["Frame_layer"]) )
-    FM.center = (0, 0)
+    FM = device_Frame(config)
     
     if only_frame or ((param_x is not None and x is None) or (param_y is not None and y is None)):
         chipdesign.add_ref(FM)
@@ -148,8 +153,8 @@ def chipdesign_transmon3D(config, param_x = None, param_y = None, x = None, y = 
     chipdesign = pg.union( chipdesign, layer = config["Pad_layer"] )
 
     text = eval(config["Text_string"], {"width": x, "height": y})
-    move_x = config["Text_pos_x"]*0.5*config["Chip_size_x"]
-    move_y = config["Text_pos_y"]*0.5*config["Chip_size_y"]    
+    move_x = config["Text_pos_x"]*0.5*config["Frame_size_width"]
+    move_y = config["Text_pos_y"]*0.5*config["Frame_size_height"]    
 
     T = pg.text(text, size=config["Text_size"], layer = config["Text_layer"])
     T.center=(0,0)
@@ -169,8 +174,8 @@ def chipdesign_transmon3D(config, param_x = None, param_y = None, x = None, y = 
     TA.add_ref(TA_squid)
     TA.center = (0,0)
     
-    move_x = config["TestPoint_pos_x"]*0.5*config["Chip_size_x"]
-    move_y = config["TestPoint_pos_y"]*0.5*config["Chip_size_y"]   
+    move_x = config["TestPoint_pos_x"]*0.5*config["Frame_size_width"]
+    move_y = config["TestPoint_pos_y"]*0.5*config["Frame_size_height"]   
     TA.move([move_x, move_y])
     TA = pg.union(TA, layer = config["TestPoint_layer"])     
     chipdesign.add_ref(TA)
@@ -179,26 +184,26 @@ def chipdesign_transmon3D(config, param_x = None, param_y = None, x = None, y = 
     return chipdesign
 
 
-def chipdesign_TcSample(frequency):
+def chipdesign_TcSample(config, param_x = None, param_y = None, x = None, y = None, only_frame = False):
+
+    init_chipdesign(config, param_x, param_y, x, y)
 
     chipdesign = Device('chipdesign')
 
     # Frame
-    FM=Device('frame')
-    rectangle = pg.rectangle((Frame_size_width, Frame_size_height), Frame_layer)
-    FM.add_ref( pg.invert(rectangle, border = Frame_width, precision = 1e-6, layer = Frame_layer) )
-    FM.center = (0, 0)
+    FM = device_Frame(config)
     chipdesign.add_ref(FM)
 
-    if frequency is None:
+    if only_frame or ((param_x is not None and x is None) or (param_y is not None and y is None)):
+        chipdesign.add_ref(FM)
         return chipdesign
 
     # Feed line
-    FL = device_FeedLine()
+    FL = device_FeedLine(config)
     chipdesign.add_ref(FL.device)
 
     # Corner points
-    CP = device_CornerPoints()
+    CP = device_CornerPoints(config)
     chipdesign.add_ref(CP)
 
     # Resonator
@@ -211,19 +216,19 @@ def chipdesign_TcSample(frequency):
         transmon = False, 
         mirror = True, 
         print_length = False, 
-        norm_to_length = calculate_resonator_length(frequency = frequency[0], material = "silicon"),
+        norm_to_length = calculate_resonator_length(frequency = config["Resonator_frequency"][0], material = "silicon"),
         #norm_to_length = 3250
     )
 
-    R1 = device_Resonator(**resonator_config)
+    R1 = device_Resonator(config, **resonator_config)
     R1.rotate(-90)
-    if FeedLine_path_type == "straight":
-        R1.xmin = FL.device.x + 0.5*LaunchPad_trace_width + LaunchPad_trace_gap_width + Feedline_Resonator_gap
+    if config["FeedLine_path_type"] == "straight":
+        R1.xmin = FL.device.x + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
         R1.y = 500
-    elif FeedLine_path_type == "manual":
-        R1.xmin = FeedLine_path_points[0][0] + 0.5*LaunchPad_trace_width + LaunchPad_trace_gap_width + Feedline_Resonator_gap
-        R1.y = 0.5*(FeedLine_input_pos[1] + FeedLine_path_points[0][1])
-    elif FeedLine_path_type == "extrude":
+    elif config["FeedLine_path_type"] == "manual":
+        R1.xmin = config["FeedLine_path_points"][0][0] + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
+        R1.y = 0.5*(config["FeedLine_input_pos"][1] + config["FeedLine_path_points"][0][1])
+    elif config["FeedLine_path_type"] == "extrude":
         sys.exit("Currently I don't know how to extract the right position to place the resonators...")
     chipdesign.add_ref(R1.device)
 
@@ -233,19 +238,19 @@ def chipdesign_TcSample(frequency):
         resonator_straight3 = 475,
         resonator_straight4 = 1100,
         mirror = False,
-        norm_to_length = calculate_resonator_length(frequency = frequency[1], material = "silicon"),
+        norm_to_length = calculate_resonator_length(frequency = config["Resonator_frequency"][1], material = "silicon"),
         # norm_to_length = 3700
     )
 
-    R2 = device_Resonator(**resonator_config)
+    R2 = device_Resonator(config, **resonator_config)
     R2.rotate(90)
-    if FeedLine_path_type == "straight":
-        R2.xmin = FL.device.x + 0.5*LaunchPad_trace_width + LaunchPad_trace_gap_width + Feedline_Resonator_gap
+    if config["FeedLine_path_type"] == "straight":
+        R2.xmin = FL.device.x + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
         R2.y = -500
-    elif FeedLine_path_type == "manual":
-        R2.xmin = FeedLine_path_points[3][0] + 0.5*LaunchPad_trace_width + LaunchPad_trace_gap_width + Feedline_Resonator_gap
-        R2.y = 0.5*(FeedLine_output_pos[1] + FeedLine_path_points[3][1])
-    elif FeedLine_path_type == "extrude":
+    elif config["FeedLine_path_type"] == "manual":
+        R2.xmin = config["FeedLine_path_points"][3][0] + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
+        R2.y = 0.5*(config["FeedLine_output_pos"][1] + config["FeedLine_path_points"][3][1])
+    elif config["FeedLine_path_type"] == "extrude":
         sys.exit("Currently I don't know how to extract the right position to place the resonators...")
     chipdesign.add_ref(R2.device)
 

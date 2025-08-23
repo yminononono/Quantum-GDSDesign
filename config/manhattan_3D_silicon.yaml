@@ -40,10 +40,11 @@ DicingMarker:
   # length: 400
   length: 1600
 
-Chip:
+Frame:
+  width: 20
   size:
-    x: 2000
-    y: 2000
+    width: 2000
+    height: 2000
 
 Grid:
   name: "transmon3D"

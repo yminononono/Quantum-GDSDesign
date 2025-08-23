@@ -1,5 +1,6 @@
 Wafer:
   layer: 21
+  inch: 4
 
 LaunchPad:
   layer: 4

@@ -15,7 +15,8 @@ from BaseDevice import *
 finger_layer = 1
 box_layer = 2
 
-def make_Path(resonator_straight1 = 240, 
+def make_Path(config,
+              resonator_straight1 = 240, 
               resonator_straight2 = 290, 
               resonator_straight3 = 475, # determines the inductive coupling
               resonator_straight4 = 1400, 
@@ -23,12 +24,12 @@ def make_Path(resonator_straight1 = 240,
               side = False ):
 
     P = Path()
-    left180_turn = pp.arc(radius = Resonator_radius, angle = 180)
-    right180_turn = pp.arc(radius = Resonator_radius, angle = -180)
+    left180_turn = pp.arc(radius = config["Resonator_radius"], angle = 180)
+    right180_turn = pp.arc(radius = config["Resonator_radius"], angle = -180)
     # left_turn = pp.euler(radius = resonator_radius, angle = 90)
     # right_turn = pp.euler(radius = resonator_radius, angle = -90)
-    left_turn = pp.arc(radius = Resonator_radius, angle = 90)
-    right_turn = pp.arc(radius = Resonator_radius, angle = -90)
+    left_turn = pp.arc(radius = config["Resonator_radius"], angle = 90)
+    right_turn = pp.arc(radius = config["Resonator_radius"], angle = -90)
     straight1 = pp.straight(length = resonator_straight1)
     straight2 = pp.straight(length = resonator_straight2)
     straight3 = pp.straight(length = resonator_straight3)
@@ -64,26 +65,33 @@ def make_Path(resonator_straight1 = 240,
     return P
 
 
-def device_Wafer(config, inch = 4):
+def device_Wafer(config):
     wafer = Device('wafer')
-    wafer_radius = 0.5 * inch * 25.4 * 1e3 # inch to um
+    wafer_radius = 0.5 * config["Wafer_inch"] * 25.4 * 1e3 # inch to um
     circle = pg.circle(radius = wafer_radius, angle_resolution = 2.5, layer = config["Wafer_layer"])
     inv_circle = pg.invert(circle, border = 7000, precision = 1e-6, layer = config["Wafer_layer"])
     wafer.add_ref( inv_circle )
     return wafer
 
+def device_Frame(config):
+    FM=Device('frame')
+    rectangle = pg.rectangle((config["Frame_size_width"] - 2*config["Frame_width"], config["Frame_size_height"] - 2*config["Frame_width"]), config["Frame_layer"])
+    FM.add_ref( pg.invert(rectangle, border = config["Frame_width"], precision = 1e-6, layer = config["Frame_layer"]) )
+    FM.center = (0, 0)
+    return FM
+
 class device_ShortToGround(BaseDevice):
-    def __init__(self):
+    def __init__(self, config):
         
         super().__init__("short")
 
         # LP oriented in x direction (x = length, y = width)
         components = {}
-        pocket_width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width
-        components["short"] = pg.rectangle(size = (1, LaunchPad_trace_width)).movey(-0.5*LaunchPad_trace_width)
+        pocket_width = config["LaunchPad_trace_width"] + 2*config["LaunchPad_trace_gap_width"]
+        components["short"] = pg.rectangle(size = (1, config["LaunchPad_trace_width"])).movey(-0.5*config["LaunchPad_trace_width"])
         components["shortgap"] = pg.rectangle(size = (1, pocket_width)).movey(-0.5*pocket_width)
-        components["short_device"] = boolean_with_ports(components["shortgap"], components["short"], "not", layer = LaunchPad_layer)
-        components["short_pocket"] = boolean_with_ports(components["shortgap"], components["short"], "or", layer = LaunchPad_layer)
+        components["short_device"] = boolean_with_ports(components["shortgap"], components["short"], "not", layer = config["LaunchPad_layer"])
+        components["short_pocket"] = boolean_with_ports(components["shortgap"], components["short"], "or", layer = config["LaunchPad_layer"])
       
         components["short_device"] = self.device.add_ref( components["short_device"] )
         components["short_pocket"] = self.pocket.add_ref( components["short_pocket"] )            
@@ -92,20 +100,20 @@ class device_ShortToGround(BaseDevice):
         self.pocket.add_port(name = 'out', midpoint = [0, 0.], width = pocket_width, orientation = 180)        
         self.center = (0,0)
 
-        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["LaunchPad_layer"]) )
 
 class device_OpenToGround(BaseDevice):
-    def __init__(self):
+    def __init__(self, config):
         
         super().__init__("open")
 
         # LP oriented in x direction (x = length, y = width)
         components = {}
-        pocket_width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width
-        components["open"] = pg.rectangle(size = (1, LaunchPad_trace_width)).movey(-0.5*LaunchPad_trace_width)
-        components["opengap"] = pg.rectangle(size = (1 + LaunchPad_trace_gap_width, pocket_width)).movey(-0.5*pocket_width)
-        components["open_device"] = boolean_with_ports(components["opengap"], components["open"], "not", layer = LaunchPad_layer)
-        components["open_pocket"] = boolean_with_ports(components["opengap"], components["open"], "or", layer = LaunchPad_layer)
+        pocket_width = config["LaunchPad_trace_width"] + 2*config["LaunchPad_trace_gap_width"]
+        components["open"] = pg.rectangle(size = (1, config["LaunchPad_trace_width"])).movey(-0.5*config["LaunchPad_trace_width"])
+        components["opengap"] = pg.rectangle(size = (1 + config["LaunchPad_trace_gap_width"], pocket_width)).movey(-0.5*pocket_width)
+        components["open_device"] = boolean_with_ports(components["opengap"], components["open"], "not", layer = config["LaunchPad_layer"])
+        components["open_pocket"] = boolean_with_ports(components["opengap"], components["open"], "or", layer = config["LaunchPad_layer"])
       
         components["open_device"] = self.device.add_ref( components["open_device"] )
         components["open_pocket"] = self.pocket.add_ref( components["open_pocket"] )            
@@ -114,33 +122,33 @@ class device_OpenToGround(BaseDevice):
         self.pocket.add_port(name = 'out', midpoint = [0, 0.], width = pocket_width, orientation = 180)        
         self.center = (0,0)
 
-        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["LaunchPad_layer"]) )
 
 class device_LaunchPad(BaseDevice):
-    def __init__(self):
+    def __init__(self, config):
         
         super().__init__("launchpad")
 
         # LP oriented in x direction (x = length, y = width)
         components = {}
-        components["pad"] = pg.rectangle(size = (LaunchPad_pad_length, LaunchPad_pad_width)).movey(-0.5*LaunchPad_pad_width)
-        components["pad"].add_port(name = 'connect', midpoint = [0., 0.], width = LaunchPad_pad_gap_width, orientation = 180)
-        components["padgap"] = pg.rectangle(size = (LaunchPad_pad_gap_length, LaunchPad_pad_gap_width)).movey(-0.5*LaunchPad_pad_gap_width)
-        components["pad_device"] = boolean_with_ports(components["padgap"], components["pad"], "not", layer = LaunchPad_layer)
-        components["pad_pocket"] = boolean_with_ports(components["padgap"], components["pad"], "or", layer = LaunchPad_layer)
+        components["pad"] = pg.rectangle(size = (config["LaunchPad_pad_length"],config["LaunchPad_pad_width"])).movey(-0.5*config["LaunchPad_pad_width"])
+        components["pad"].add_port(name = 'connect', midpoint = [0., 0.], width = config["LaunchPad_pad_gap_width"], orientation = 180)
+        components["padgap"] = pg.rectangle(size = (config["LaunchPad_pad_gap_length"], config["LaunchPad_pad_gap_width"])).movey(-0.5*config["LaunchPad_pad_gap_width"])
+        components["pad_device"] = boolean_with_ports(components["padgap"], components["pad"], "not", layer = config["LaunchPad_layer"])
+        components["pad_pocket"] = boolean_with_ports(components["padgap"], components["pad"], "or", layer = config["LaunchPad_layer"])
         components["pad_pocket"].add_port(
-            name = f'LaunchPad{self.id}_{str(LaunchPad_pad_gap_length - LaunchPad_pad_length)}', 
-            midpoint = [LaunchPad_pad_gap_length, 0.], 
-            width = LaunchPad_pad_width, 
+            name = f'LaunchPad{self.id}_{str(config["LaunchPad_pad_gap_length"] - config["LaunchPad_pad_length"])}', 
+            midpoint = [config["LaunchPad_pad_gap_length"], 0.], 
+            width = config["LaunchPad_pad_width"], 
             orientation = 180
         )   
-        #components["pad_pocket"].add_port(name = f'LaunchPad{self.id}_{str(LaunchPad_pad_gap_length - LaunchPad_pad_length)}', midpoint = [LaunchPad_pad_gap_length, 0.], width = LaunchPad_pad_width, orientation = 180)
+        #components["pad_pocket"].add_port(name = f'LaunchPad{self.id}_{str(config["LaunchPad_pad_gap_length"] - config["LaunchPad_pad_length"])}', midpoint = [config["LaunchPad_pad_gap_length"], 0.], width = config["LaunchPad_pad_width"], orientation = 180)
 
-        components["trace"]    = pg.taper(length = LaunchPad_trace_length, width1 = LaunchPad_pad_width, width2 = LaunchPad_trace_width, port = None, layer = 0)
-        components["trace"].add_port(name = 'connect', midpoint = [0., 0.], width = LaunchPad_pad_gap_width, orientation = 180)        
-        components["tracegap"] = pg.taper(length = LaunchPad_trace_length, width1 = LaunchPad_pad_gap_width, width2 = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, port = None, layer = LaunchPad_layer)
-        components["trace_device"] = boolean_with_ports(components["tracegap"], components["trace"], "not", layer = LaunchPad_layer)
-        components["trace_pocket"] = boolean_with_ports(components["tracegap"], components["trace"], "or", layer = LaunchPad_layer)        
+        components["trace"]    = pg.taper(length = config["LaunchPad_trace_length"], width1 = config["LaunchPad_pad_width"], width2 = config["LaunchPad_trace_width"], port = None, layer = 0)
+        components["trace"].add_port(name = 'connect', midpoint = [0., 0.], width = config["LaunchPad_pad_gap_width"], orientation = 180)        
+        components["tracegap"] = pg.taper(length = config["LaunchPad_trace_length"], width1 = config["LaunchPad_pad_gap_width"], width2 = config["LaunchPad_trace_width"] + 2*config["LaunchPad_trace_gap_width"], port = None, layer = config["LaunchPad_layer"])
+        components["trace_device"] = boolean_with_ports(components["tracegap"], components["trace"], "not", layer = config["LaunchPad_layer"])
+        components["trace_pocket"] = boolean_with_ports(components["tracegap"], components["trace"], "or", layer = config["LaunchPad_layer"])        
 
         components["trace_device"] = self.device.add_ref( components["trace_device"] )
         components["pad_device"] = self.device.add_ref( components["pad_device"] )
@@ -150,12 +158,12 @@ class device_LaunchPad(BaseDevice):
         components["trace_device"].connect(port = 'connect', destination = components["pad_device"].ports['connect'])
         components["trace_pocket"].connect(port = 'connect', destination = components["pad_pocket"].ports['connect'])        
 
-        self.device.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)
-        self.pocket.add_port(name = 'out', midpoint = [-LaunchPad_trace_length, 0.], width = LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, orientation = 180)     
+        self.device.add_port(name = 'out', midpoint = [-config["LaunchPad_trace_length"], 0.], width = config["LaunchPad_trace_width"] + 2*config["LaunchPad_trace_gap_width"], orientation = 180)
+        self.pocket.add_port(name = 'out', midpoint = [-config["LaunchPad_trace_length"], 0.], width = config["LaunchPad_trace_width"] + 2*config["LaunchPad_trace_gap_width"], orientation = 180)     
         self.center = (0,0)
         self.xmin = 0
 
-        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["LaunchPad_layer"]) )
 
 class device_Pad(BaseDevice):
     def __init__(self):
@@ -215,28 +223,40 @@ class device_Pad(BaseDevice):
 #         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
 class device_FeedLine(BaseDevice):
-    def __init__(self):
+    def __init__(self, config):
         # make 2 pads
         super().__init__("feedline")
 
-        LP_in = globals()[f"device_{FeedLine_input_type}"]()
-        LP_in.rotate(FeedLine_input_angle).move(FeedLine_input_pos)
+        LP_in = globals()[f"device_{config['FeedLine_input_type']}"](config)
+        LP_in.rotate(config["FeedLine_input_angle"]).move(config["FeedLine_input_pos"])
 
         X_device = CrossSection()
-        X_device.add(width=LaunchPad_trace_gap_width, offset = 0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
-        X_device.add(width=LaunchPad_trace_gap_width, offset = -0.5*(LaunchPad_trace_width + LaunchPad_trace_gap_width), layer = LaunchPad_layer)
+        X_device.add(
+            width=config["LaunchPad_trace_gap_width"], 
+            offset = 0.5*(config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"]), 
+            layer = config["LaunchPad_layer"]
+        )
+        X_device.add(
+            width=config["LaunchPad_trace_gap_width"], 
+            offset = -0.5*(config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"]), 
+            layer = config["LaunchPad_layer"]
+        )
 
         X_pocket = CrossSection()
-        X_pocket.add(width=LaunchPad_trace_width + 2*LaunchPad_trace_gap_width, layer = LaunchPad_layer, ports = ('in','out'))
+        X_pocket.add(
+            width=config["LaunchPad_trace_width"] + 2*config["LaunchPad_trace_gap_width"], 
+            layer = config["LaunchPad_layer"], 
+            ports = ('in','out')
+        )
 
         device_ref, metal_ref, pocket_ref = self.add_ref(LP_in)
 
-        LP_out = globals()[f"device_{FeedLine_output_type}"]()
-        LP_out.rotate(FeedLine_output_angle).move(FeedLine_output_pos)
+        LP_out = globals()[f"device_{config['FeedLine_output_type']}"](config)
+        LP_out.rotate(config["FeedLine_output_angle"]).move(config["FeedLine_output_pos"])
 
-        if FeedLine_path_type == "extrude":
+        if config["FeedLine_path_type"] == "extrude":
             P = Path()
-            for pathtype, length in FeedLine_path_points:
+            for pathtype, length in config["FeedLine_path_points"]:
                 if pathtype == "left":
                     path = pp.arc(radius = length, angle = 90)
                 elif pathtype == "right":
@@ -266,22 +286,22 @@ class device_FeedLine(BaseDevice):
             device_ref.connect(port = "out", destination = FeedLine_device.ports['out'])
             pocket_ref.connect(port = "out", destination = FeedLine_pocket.ports['out'])   
         
-        elif FeedLine_path_type == "manual":
-            manual_path = [ LP_in.device.ports['out'].midpoint ] + FeedLine_path_points +  [ LP_out.device.ports['out'].midpoint ]
+        elif config["FeedLine_path_type"] == "manual":
+            manual_path = [ LP_in.device.ports['out'].midpoint ] + config["FeedLine_path_points"] +  [ LP_out.device.ports['out'].midpoint ]
             print(manual_path)
             D3 = pr.route_smooth(LP_in.device.ports['out'], 
                                     LP_out.device.ports['out'], 
                                     width = X_device, 
                                     path_type='manual', 
                                     manual_path=manual_path, 
-                                    radius = FeedLine_path_radius,
+                                    radius = config["FeedLine_path_radius"],
                                     smooth_options={'corner_fun': pp.arc})
             D4 = pr.route_smooth(LP_in.device.ports['out'], 
                                     LP_out.device.ports['out'], 
                                     path_type='manual', 
                                     manual_path=manual_path,
-                                    radius = FeedLine_path_radius, 
-                                    layer = LaunchPad_layer,
+                                    radius = config["FeedLine_path_radius"], 
+                                    layer = config["LaunchPad_layer"],
                                     smooth_options={'corner_fun': pp.arc})
             
             self.device.add_ref(D3)
@@ -292,24 +312,24 @@ class device_FeedLine(BaseDevice):
             D3 = pr.route_smooth(LP_in.device.ports['out'], 
                                  LP_out.device.ports['out'], 
                                  width = X_device, 
-                                 path_type = FeedLine_path_type, 
-                                 length1 = FeedLine_path_length1,
-                                 length2 = FeedLine_path_length2,
-                                 radius = FeedLine_path_radius,
+                                 path_type = config["FeedLine_path_type"], 
+                                 length1 = config["FeedLine_path_length1"],
+                                 length2 = config["FeedLine_path_length2"],
+                                 radius = config["FeedLine_path_radius"],
                                  smooth_options={'corner_fun': pp.arc})
             D4 = pr.route_smooth(LP_in.pocket.ports['out'], 
                                  LP_out.pocket.ports['out'], 
-                                 path_type = FeedLine_path_type,
-                                 length1 = FeedLine_path_length1,
-                                 length2 = FeedLine_path_length2,
-                                 radius = FeedLine_path_radius,
+                                 path_type = config["FeedLine_path_type"],
+                                 length1 = config["FeedLine_path_length1"],
+                                 length2 = config["FeedLine_path_length2"],
+                                 radius = config["FeedLine_path_radius"],
                                  smooth_options={'corner_fun': pp.arc})
 
             self.device.add_ref(D3)
             self.pocket.add_ref(D4)
             self.add_ref(LP_out)
 
-        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["LaunchPad_layer"]) )
 
 
 class device_EntangleLine(BaseDevice):
@@ -376,11 +396,11 @@ class device_DCLine(BaseDevice):
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = LaunchPad_layer) )
 
-def device_CornerPoints():
+def device_CornerPoints(config):
     CP = Device("CornerPoints")
-    rectangle = pg.rectangle( (CornerPoint_width, CornerPoint_width), layer = CornerPoint_layer)
-    CornerPoint = pg.invert(rectangle, border = CornerPoint_gap_width, precision = 1e-6, layer = CornerPoint_layer)
-    for center in CornerPoint_pos:
+    rectangle = pg.rectangle( (config["CornerPoint_width"], config["CornerPoint_width"]), layer = config["CornerPoint_layer"])
+    CornerPoint = pg.invert(rectangle, border = config["CornerPoint_gap_width"], precision = 1e-6, layer = config["CornerPoint_layer"])
+    for center in config["CornerPoint_pos"]:
         cp = CP.add_ref( CornerPoint )
         cp.center = center
     return CP
@@ -445,6 +465,7 @@ def device_TestBoxes(DCLine = False):
 
 class device_Resonator(BaseDevice):
     def __init__(self, 
+                 config,
                  resonator_straight1 = 240, 
                  resonator_straight2 = 290, 
                  resonator_straight3 = 475, # determines the inductive coupling
@@ -465,11 +486,12 @@ class device_Resonator(BaseDevice):
         X = CrossSection()
 
         # Add a a few "sections" to the cross-section
-        X.add(width=Resonator_gap_width, offset = 0.5*(Resonator_width + Resonator_gap_width), layer = Resonator_layer)
-        X.add(width=Resonator_gap_width, offset = -0.5*(Resonator_width + Resonator_gap_width), layer = Resonator_layer)
+        X.add(width=config["Resonator_gap_width"], offset = 0.5*(config["Resonator_width"] + config["Resonator_gap_width"]), layer = config["Resonator_layer"])
+        X.add(width=config["Resonator_gap_width"], offset = -0.5*(config["Resonator_width"] + config["Resonator_gap_width"]), layer = config["Resonator_layer"])
         
         # Combine the Path and the CrossSection
         P = make_Path(
+                 config,
                  resonator_straight1 = resonator_straight1, 
                  resonator_straight2 = resonator_straight2, 
                  resonator_straight3 = resonator_straight3,
@@ -478,12 +500,13 @@ class device_Resonator(BaseDevice):
                  side = side 
         )
         if norm_to_length:
-            norm_factor = float( (norm_to_length - (3 + 2*n_step)*(math.pi/2)*Resonator_radius) /(P.length() - (3 + 2*n_step)*(math.pi/2)*Resonator_radius) )
+            norm_factor = float( (norm_to_length - (3 + 2*n_step)*(math.pi/2)*config["Resonator_radius"]) /(P.length() - (3 + 2*n_step)*(math.pi/2)*config["Resonator_radius"]) )
             resonator_straight1 = norm_factor * resonator_straight1
             resonator_straight2 = norm_factor * resonator_straight2
             resonator_straight3 = norm_factor * resonator_straight3
             resonator_straight4 = norm_factor * resonator_straight4       
             P = make_Path(
+                 config,
                  resonator_straight1 = resonator_straight1, 
                  resonator_straight2 = resonator_straight2, 
                  resonator_straight3 = resonator_straight3,
@@ -493,27 +516,27 @@ class device_Resonator(BaseDevice):
             )                             
 
         device = P.extrude(X)
-        pocket = P.extrude(Resonator_width + 2*Resonator_gap_width, layer = Resonator_layer)
-        device.add_port(name = 'out', midpoint = [0., 0.], width = Resonator_width, orientation = 180)
-        pocket.add_port(name = 'out', midpoint = [0., 0.], width = Resonator_width, orientation = 180)
+        pocket = P.extrude(config["Resonator_width"] + 2*config["Resonator_gap_width"], layer = config["Resonator_layer"])
+        device.add_port(name = 'out', midpoint = [0., 0.], width = config["Resonator_width"], orientation = 180)
+        pocket.add_port(name = 'out', midpoint = [0., 0.], width = config["Resonator_width"], orientation = 180)
         device = self.device.add_ref(device)
         pocket = self.pocket.add_ref(pocket)        
         self.rotate(90)
-        self.movex(-(resonator_straight1+Resonator_radius))
+        self.movex(-(resonator_straight1 + config["Resonator_radius"]))
 
         if transmon:
             # capacitor (resonator -> qubit)
             cap_gap1 = 15
             cap_width = 50
             cap_length = 10
-            stub_width = Resonator_width
-            stub_length = 2*Resonator_width
+            stub_width = config["Resonator_width"]
+            stub_length = 2*config["Resonator_width"]
 
             cap = pg.tee(size = (cap_width,cap_length), stub_size = (stub_width,stub_length), taper_type = 'fillet', layer = 4)
             if entangle:
                 cap_entangle = pg.copy( cap )
                 cap_entangle.rotate(180)
-            line = pg.bbox([(-0.5*stub_width, -Resonator_pad_length),(0.5*stub_width, 0)])
+            line = pg.bbox([(-0.5*stub_width, -config["Resonator_pad_length"]),(0.5*stub_width, 0)])
             cap = pg.boolean(cap, line, 'or', layer = 4)
 
             # capacitor (qubit)
@@ -529,7 +552,7 @@ class device_Resonator(BaseDevice):
             if entangle:
                 cap_entangle.ymin = cap_qubit_up.ymax + cap_gap1
             # Subtract from pad
-            pad = pg.bbox([(-0.5*Resonator_pad_width, -0.5*Resonator_pad_length),(0.5*Resonator_pad_width, 0.5*Resonator_pad_length)])
+            pad = pg.bbox([(-0.5*config["Resonator_pad_width"], -0.5*config["Resonator_pad_length"]),(0.5*config["Resonator_pad_width"], 0.5*config["Resonator_pad_length"])])
             pad.movey(cap_length + cap_gap1 + cap_length2 + 0.5*cap_gap2)
 
             # pad.add_port(name = 'out', midpoint = [0., -stub_width], width = stub_width, orientation = 270)
@@ -562,9 +585,9 @@ class device_Resonator(BaseDevice):
             #waveguide_device = Resonator.add_ref(waveguide_device)
             
             # Add short ground
-            short_ground = pg.rectangle(size=(Resonator_width + 2 * Resonator_gap_width, Resonator_gap_width), layer = Resonator_layer)
+            short_ground = pg.rectangle(size=(config["Resonator_width"] + 2 * config["Resonator_gap_width"], config["Resonator_gap_width"]), layer = config["Resonator_layer"])
             short_ground.movex(-short_ground.center[0])
-            short_ground.add_port(name = 'out', midpoint = [0, 0], width = Resonator_width, orientation = 270)
+            short_ground.add_port(name = 'out', midpoint = [0, 0], width = config["Resonator_width"], orientation = 270)
             short_ground_device = self.device.add_ref(short_ground)
             short_ground_pocket = self.pocket.add_ref(short_ground)            
             short_ground_device.connect(port="out", destination=device.ports['out']) 
@@ -581,7 +604,7 @@ class device_Resonator(BaseDevice):
             plt.xlabel("Position along curve (arc length)")
             plt.ylabel("Curvature")
 
-        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = Resonator_layer) )
+        self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["Resonator_layer"]) )
 
 # def device_JJ( config, width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "manhattan", squid = False, bandage = True, photolitho = False):
 def device_JJ( config ):
@@ -1142,27 +1165,44 @@ def device_DicingMarkers(config):
     DicingMarkers.add_ref(marker)
     return DicingMarkers
 
-def device_Grid(inch = 4):
+def device_Grid(config):
     grid = Device("Grid")
-    wafer_radius = 0.5 * inch * 25.4 * 1e3 # inch to um
-    device_list_perp = [pg.rectangle(size = (Frame_width, 2*wafer_radius), layer = Grid_layer) for i in range(Grid_lines_x)]
-    device_list_horiz = [pg.rectangle(size = (2*wafer_radius, Frame_width), layer = Grid_layer) for i in range(Grid_lines_y)]
+    wafer_radius = 0.5 * config["Wafer_inch"] * 25.4 * 1e3 # inch to um
+    device_list_perp = [pg.rectangle(size = (2*config["Frame_width"], 2*wafer_radius), layer = config["Grid_layer"]) for i in range(config["Grid_lines_x"])]
+    device_list_horiz = [pg.rectangle(size = (2*wafer_radius, 2*config["Frame_width"]), layer = config["Grid_layer"]) for i in range(config["Grid_lines_y"])]
     grid_perp = pg.grid(device_list_perp,
-                spacing = (Frame_width + Frame_size_width, 0),
-                separation = False,
-                shape = (Grid_lines_x,1))
+                spacing = (config["Frame_size_width"] - 2*config["Frame_width"], 0),
+                # separation = False,
+                shape = (config["Grid_lines_x"],1))
     grid_perp.center = (0, 0)
     grid_horiz = pg.grid(device_list_horiz,
-                spacing = (0, Frame_width + Frame_size_height),
-                separation = False,
-                shape = (1, Grid_lines_y)) 
-    grid_horiz.center = (0, 0)
+                spacing = (0, config["Frame_size_height"] - 2*config["Frame_width"]),
+                # separation = False,
+                shape = (1, config["Grid_lines_y"])) 
+    grid_horiz.center = (0, 0)        
+
+    if "Grid_sweep_type" in config:
+        if config["Grid_sweep_type"] == "gridsweep":
+            x = 1
+            y = 1
+            for i, array in enumerate(config["Grid_sweep_array"]):
+                x = x * len(array["x"]) + array["gap_x"] * (len(array["x"]) - 1)
+                y = y * len(array["y"]) + array["gap_y"] * (len(array["y"]) - 1)
+        elif config["Grid_sweep_type"] == "array":
+            shape = np.array(config["Grid_sweep_array"], dtype=object).shape
+            x = shape[0] + (shape[0] - 1) * config["Grid_sweep_gap_x"]
+            y = shape[1] + (shape[1] - 1) * config["Grid_sweep_gap_y"]
+        if (x % 2 == 0 and config["Grid_lines_x"] % 2 == 0):
+            grid_perp.center = (0.5 * config["Frame_size_width"], 0)
+        if (y % 2 == 0 and config["Grid_lines_y"] % 2 == 0):
+            grid_horiz.center = (0, 0.5 * config["Frame_size_height"])
+
     circle = pg.circle(radius = wafer_radius, angle_resolution = 2.5, layer = 21)
     inv_circle = pg.invert(circle, border = 7000, precision = 1e-6, layer = 21)
     grid_perp = pg.boolean(A = grid_perp, B = inv_circle, operation = 'not', precision = 1e-6,
-                num_divisions = [1,1], layer = Grid_layer)
+                num_divisions = [1,1], layer = config["Grid_layer"])
     grid_horiz = pg.boolean(A = grid_horiz, B = inv_circle, operation = 'not', precision = 1e-6,
-                num_divisions = [1,1], layer = Grid_layer)    
+                num_divisions = [1,1], layer = config["Grid_layer"])    
     grid.add_ref( grid_perp )
     grid.add_ref( grid_horiz )    
     return grid
