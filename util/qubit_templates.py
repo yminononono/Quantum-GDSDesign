@@ -166,38 +166,38 @@ class device_LaunchPad(BaseDevice):
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["LaunchPad_layer"]) )
 
 class device_Pad(BaseDevice):
-    def __init__(self):
+    def __init__(self, config):
         super().__init__("PAD")    
 
-        rectangle_up = pg.rectangle(( Pad_width, Pad_height), Pad_layer)
-        rectangle_up.polygons[0].fillet( Pad_rounding )
-        rectangle_up.movex(-0.5*Pad_width)
+        rectangle_up = pg.rectangle(( config["Pad_width"], config["Pad_height"]), config["Pad_layer"])
+        rectangle_up.polygons[0].fillet( config["Pad_rounding"] )
+        rectangle_up.movex(-0.5*config["Pad_width"])
         #rectangle_up.add_port(name = 'Junction_up', midpoint = [0., 0], width = 10, orientation = -90)
-        rectangle_up.movey(0.5*Pad_gap)
+        rectangle_up.movey(0.5*config["Pad_gap"])
         self.metal.add_ref( rectangle_up )
 
-        rectangle_down = pg.rectangle(( Pad_width, Pad_height), Pad_layer)
-        rectangle_down.polygons[0].fillet( Pad_rounding )
+        rectangle_down = pg.rectangle(( config["Pad_width"], config["Pad_height"]), config["Pad_layer"])
+        rectangle_down.polygons[0].fillet( config["Pad_rounding"] )
         rectangle_down.mirror(p1 = (0, 0), p2 = (200, 0))
-        rectangle_down.movex(-0.5*Pad_width)
+        rectangle_down.movex(-0.5*config["Pad_width"])
         #rectangle_down.add_port(name = f'LaunchPad{self.id}_{str(Pad_gap)}', midpoint = [0, 0.], width = Pad_gap, orientation = 90)
         #rectangle_down.add_port(name = 'Junction_down', midpoint = [0., 0], width = 10, orientation = 90)
-        rectangle_down.movey(-0.5*Pad_gap)
+        rectangle_down.movey(-0.5*config["Pad_gap"])
         self.metal.add_ref( rectangle_down )
         # self.device.center = (0, 0)
         
         pocket_width = 100
-        pocket = pg.rectangle(( Pad_width+2*pocket_width, 2*Pad_height+Pad_gap+2*pocket_width), Pad_layer)
+        pocket = pg.rectangle(( config["Pad_width"]+2*pocket_width, 2*config["Pad_height"]+config["Pad_gap"]+2*pocket_width), config["Pad_layer"])
         pocket.center = (0,0)
         pocket.add_port(
-            name = f'LaunchPad{self.id}_{str(Pad_gap)}', 
-            midpoint = [0, -0.5*Pad_gap], 
-            width = Pad_gap, 
+            name = f'LaunchPad{self.id}_{str(config["Pad_gap"])}', 
+            midpoint = [0, -0.5*config["Pad_gap"]], 
+            width = config["Pad_gap"], 
             orientation = 90
         )   
         self.pocket.add_ref(pocket)
 
-        self.device.add_ref( boolean_with_ports(self.pocket, self.metal, "not", layer = Pad_layer) )
+        self.device.add_ref( boolean_with_ports(self.pocket, self.metal, "not", layer = config["Pad_layer"]) )
 
 # class device_FeedLine(BaseDevice):
 #     def __init__(self):
