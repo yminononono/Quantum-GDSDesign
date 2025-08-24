@@ -472,12 +472,14 @@ class device_Resonator(BaseDevice):
                  resonator_straight4 = 1400, 
                  n_step = 3,
                  norm_to_length = None,
+                 norm_to_frequency = None,
                  transmon = True, 
                  side = False, 
                  mirror = False, 
                  entangle = False, 
                  print_length = False, 
-                 plot_curvature = False
+                 plot_curvature = False,
+                 **kwargs
                  ):
         # make 2 pads
         super().__init__("resonator")
@@ -499,7 +501,11 @@ class device_Resonator(BaseDevice):
                  n_step = n_step,
                  side = side 
         )
-        if norm_to_length:
+        if norm_to_length or norm_to_frequency:
+            if norm_to_length and norm_to_frequency:
+                raise ValueError("Do not set both norm_to_length and norm_to_frequency")
+            elif norm_to_frequency:
+                norm_to_length = calculate_resonator_length(frequency = norm_to_frequency, material = config["Wafer_material"])
             norm_factor = float( (norm_to_length - (3 + 2*n_step)*(math.pi/2)*config["Resonator_radius"]) /(P.length() - (3 + 2*n_step)*(math.pi/2)*config["Resonator_radius"]) )
             resonator_straight1 = norm_factor * resonator_straight1
             resonator_straight2 = norm_factor * resonator_straight2
@@ -1188,13 +1194,14 @@ def device_Grid(config):
             for i, array in enumerate(config["Grid_sweep_array"]):
                 x = x * len(array["x"]) + array["gap_x"] * (len(array["x"]) - 1)
                 y = y * len(array["y"]) + array["gap_y"] * (len(array["y"]) - 1)
+            print(x, y)
         elif config["Grid_sweep_type"] == "array":
             shape = np.array(config["Grid_sweep_array"], dtype=object).shape
             x = shape[0] + (shape[0] - 1) * config["Grid_sweep_gap_x"]
             y = shape[1] + (shape[1] - 1) * config["Grid_sweep_gap_y"]
-        if (x % 2 == 0 and config["Grid_lines_x"] % 2 == 0):
+        if (x % 2 == 0 and config["Grid_lines_x"] % 2 == 0) or (x % 2 == 1 and config["Grid_lines_x"] % 2 == 1):
             grid_perp.center = (0.5 * config["Frame_size_width"], 0)
-        if (y % 2 == 0 and config["Grid_lines_y"] % 2 == 0):
+        if (y % 2 == 0 and config["Grid_lines_y"] % 2 == 0) or (y % 2 == 1 and config["Grid_lines_y"] % 2 == 1):
             grid_horiz.center = (0, 0.5 * config["Frame_size_height"])
 
     circle = pg.circle(radius = wafer_radius, angle_resolution = 2.5, layer = 21)

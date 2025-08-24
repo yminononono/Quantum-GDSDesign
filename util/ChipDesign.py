@@ -2,14 +2,52 @@ import sys, copy
 from qubit_templates import *
 from functions import *
 
+def deep_set(config, path, value, sep=":"):
+    keys = path.split(sep)
+    *parents, last = keys
+    cur = config
+    for k in parents:
+        if k.isdecimal():
+            k = int(k)
+        cur = cur[k]
+    if last.isdecimal():
+        last = int(last)
+    cur[last] = value
+
 def init_chipdesign(config, param_x, param_y, x, y):
-    if (param_x is None) and (param_y is None):
+
+    # param_x
+    if (param_x is None):
         pass
-    elif ((param_x in config) or (param_x == "dummy")) and ((param_y in config) or (param_y == "dummy")):
+    elif type(param_x) is list:
+        for par, var in zip(param_x, x):
+            if ":" in par:
+                deep_set(config, par, var)
+            else:
+                config[par] = var
+    elif ":" in param_x:
+        deep_set(config, param_x, x)
+    elif ((param_x in config) or (param_x == "dummy")):
         config[param_x] = x
+    else:
+        raise ValueError(f"{param_x} is not in config dictionary!!")
+    
+    # param_y    
+    if (param_y is None):
+        pass    
+    elif type(param_y) is list:
+        for par, var in zip(param_y, y):
+            if ":" in par:
+                deep_set(config, par, var)
+            else:
+                config[par] = var
+    elif ":" in param_y:        
+        deep_set(config, param_y, y)
+    elif ((param_y in config) or (param_y == "dummy")):
         config[param_y] = y
     else:
-        raise ValueError(f"{param_x} or {param_y} is not in config dictionary!!")
+        raise ValueError(f"{param_y} is not in config dictionary!!")
+
 
 def sweep_chipdesign( config, userfunction = None ):
 
@@ -201,7 +239,6 @@ def chipdesign_TcSample(config, param_x = None, param_y = None, x = None, y = No
     chipdesign.add_ref(FM)
 
     if only_frame or ((param_x is not None and x is None) or (param_y is not None and y is None)):
-        chipdesign.add_ref(FM)
         return chipdesign
 
     # Feed line
@@ -213,51 +250,20 @@ def chipdesign_TcSample(config, param_x = None, param_y = None, x = None, y = No
     chipdesign.add_ref(CP)
 
     # Resonator
-    resonator_config = dict(
-        resonator_straight1 = 220, 
-        resonator_straight2 = 260, 
-        resonator_straight3 = 475, 
-        resonator_straight4 = 700, 
-        n_step = 3, 
-        transmon = False, 
-        mirror = True, 
-        print_length = False, 
-        norm_to_length = calculate_resonator_length(frequency = config["Resonator_frequency"][0], material = "silicon"),
-        #norm_to_length = 3250
-    )
+    R = []
+    # print(config["Resonator_devices"][0]["norm_to_frequency"])
+    for i, resonator_config in enumerate(config["Resonator_devices"]):
+        R.append( device_Resonator(config, **resonator_config) )
+        R[i].rotate(resonator_config["angle"])
 
-    R1 = device_Resonator(config, **resonator_config)
-    R1.rotate(-90)
-    if config["FeedLine_path_type"] == "straight":
-        R1.xmin = FL.device.x + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
-        R1.y = 500
-    elif config["FeedLine_path_type"] == "manual":
-        R1.xmin = config["FeedLine_path_points"][0][0] + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
-        R1.y = 0.5*(config["FeedLine_input_pos"][1] + config["FeedLine_path_points"][0][1])
-    elif config["FeedLine_path_type"] == "extrude":
-        sys.exit("Currently I don't know how to extract the right position to place the resonators...")
-    chipdesign.add_ref(R1.device)
-
-    resonator_config.update(
-        resonator_straight1 = 220,
-        resonator_straight2 = 260,
-        resonator_straight3 = 475,
-        resonator_straight4 = 1100,
-        mirror = False,
-        norm_to_length = calculate_resonator_length(frequency = config["Resonator_frequency"][1], material = "silicon"),
-        # norm_to_length = 3700
-    )
-
-    R2 = device_Resonator(config, **resonator_config)
-    R2.rotate(90)
-    if config["FeedLine_path_type"] == "straight":
-        R2.xmin = FL.device.x + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
-        R2.y = -500
-    elif config["FeedLine_path_type"] == "manual":
-        R2.xmin = config["FeedLine_path_points"][3][0] + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + config["Feedline_Resonator_gap"]
-        R2.y = 0.5*(config["FeedLine_output_pos"][1] + config["FeedLine_path_points"][3][1])
-    elif config["FeedLine_path_type"] == "extrude":
-        sys.exit("Currently I don't know how to extract the right position to place the resonators...")
-    chipdesign.add_ref(R2.device)
+        if config["FeedLine_path_type"] == "straight":
+            R[i].xmin = FL.device.x + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + resonator_config["feedline_gap"]
+            R[i].y = resonator_config["y"]
+        elif config["FeedLine_path_type"] == "manual":
+            R[i].xmin = config["FeedLine_path_points"][resonator_config["x_pathpoint"]][0] + 0.5*config["LaunchPad_trace_width"] + config["LaunchPad_trace_gap_width"] + resonator_config["feedline_gap"]
+            R[i].y = resonator_config["y"]
+        elif config["FeedLine_path_type"] == "extrude":
+            sys.exit("Currently I don't know how to extract the right position to place the resonators...")
+        chipdesign.add_ref(R[i].device)
 
     return chipdesign
