@@ -75,23 +75,21 @@ Grid:
         gap_x: 1
         gap_y: 1
 
-    ## More manual way to place chip designs
-    ## Place arguments in the array, where you want samples
-    ## Put "null" if you want an empty cell
+    # # More manual way to place chip designs
+    # # Place arguments in the array, where you want samples
+    # # Put "null" if you want an empty cell
     # type: "array"
     # devices:
-    #   - JJ_finger_up_width: 0.10
-    #     JJ_squid: true
+    #   - JJ_finger_width: 0.10
     #     Pad_width : 250
     #     Pad_height : 600
-    #   - JJ_finger_up_width: 0.15
-    #     JJ_squid: false
-    #     Pad_width : 400
-    #     Pad_height : 300
-    #   - JJ_finger_up_width: 0.15
+    #   - JJ_finger_width: 0.15
     #     JJ_squid: true
     #     Pad_width : 400
-    #     Pad_height : 300
+    #   - JJ_finger_width: 0.15
+    #     JJ_squid: true
+    #     Pad_width : 600
+    #     Pad_height : 200
     # array: [
     #   [0    , null  , 1     , null, 1    , null  , 2     , 0   ],
     #   [1    , null  , 2     , 0   , 0    , 1     , 2     , null], 
@@ -100,8 +98,8 @@ Grid:
     #   [0    , 1     , 2     , null, 1    , 0     , null  , 1   ],
     #   [1    , null  , 2     , 0   , 0    , 1     , 2     , null], 
     # ]
-    # gap_x : 0
-    # gap_y : 1
+    # gap_x : 1
+    # gap_y : 0
 
 
 Text:

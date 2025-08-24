@@ -612,7 +612,7 @@ class device_Resonator(BaseDevice):
 
         self.metal.add_ref( boolean_with_ports(self.pocket, self.device, "not", layer = config["Resonator_layer"]) )
 
-# def device_JJ( config, width = 0.135, bridge_width = 1.0, finger_width = 0.2, JJtype = "manhattan", squid = False, bandage = True, photolitho = False):
+# def device_JJ( config, JJ_bridge_width = 1.0, JJ_finger_width = 0.2, JJ_type = "manhattan", JJ_squid = False, JJ_bandage = True, JJ_photolitho = False):
 def device_JJ( config ):
     JJ=Device('JJ')
     JJ_half=Device('JJ_half')
@@ -620,28 +620,26 @@ def device_JJ( config ):
     if config["JJ_photolitho"]:
         if (config["JJ_type"] == "mh" or config["JJ_type"] == "manhattan") and config["JJ_photolitho"]:
 
-            finger_rounding_radius = JJ_finger_rounding
             finger_width_outer = 2.0
-            finger_length_outer = 0.6*Pad_gap
-            finger_width_inner = width
-            finger_length_inner = 0.6*Pad_gap
+            finger_length_outer = 0.6*config["Pad_gap"]
+            finger_length_inner = 0.6*config["Pad_gap"]
 
             # make finger
             finger_outer = pg.rectangle((finger_width_outer, finger_length_outer), finger_layer)
-            # finger_outer.polygons[0].fillet( finger_rounding_radius )
+            # finger_outer.polygons[0].fillet( config["JJ_finger_rounding"] )
             finger_outer.movex(-finger_outer.center[0])
-            finger_outer.add_port(name = 'out', midpoint = [0, finger_rounding_radius], width = finger_width_outer, orientation = 270)
+            finger_outer.add_port(name = 'out', midpoint = [0, config["JJ_finger_rounding"]], width = finger_width_outer, orientation = 270)
             
-            finger_inner = pg.rectangle((finger_width_inner, finger_length_inner), finger_layer)
+            finger_inner = pg.rectangle((config["JJ_finger_width"], finger_length_inner), finger_layer)
             finger_inner.movex(-finger_inner.center[0])
-            finger_inner.add_port(name = 'in', midpoint = [0, finger_length_inner], width = finger_width_inner, orientation = 90)
+            finger_inner.add_port(name = 'in', midpoint = [0, finger_length_inner], width = config["JJ_finger_width"], orientation = 90)
 
             finger_inner1 = JJ_half.add_ref( finger_inner ).rotate(45)
             finger_outer1 = JJ_half.add_ref( finger_outer )
             finger_outer1.center[0] = 0
             finger_outer1.movex(-0.75/math.sqrt(2)*finger_length_inner)
             finger_outer1.movey(+0.4/math.sqrt(2)*finger_length_inner)
-            JJ_half.movey(-0.1/math.sqrt(2)*finger_length_inner*float(width/0.5))
+            JJ_half.movey(-0.1/math.sqrt(2)*finger_length_inner*float(config["JJ_finger_width"]/0.5))
             #finger_outer1.connect(port = 'out', destination = finger_inner1.ports['in'])
             
             # if config["JJ_squid"]:
@@ -650,7 +648,7 @@ def device_JJ( config ):
             #     finger_outer2.connect(port = 'out', destination = finger_inner2.ports['in'])
 
             JJ_half = pg.union(JJ_half)
-            JJ_half.polygons[0].fillet( finger_rounding_radius )
+            JJ_half.polygons[0].fillet( config["JJ_finger_rounding"] )
             JJ_half = pg.union(JJ_half)
 
             JJ.add_ref( JJ_half )
@@ -659,7 +657,7 @@ def device_JJ( config ):
 
             # Remove corner in JJ
             JJ = pg.union(JJ)
-            JJ.polygons[0].fillet( JJ_rounding )
+            JJ.polygons[0].fillet( config["JJ_rounding"] )
             JJ = pg.union(JJ)        
             
             if config["JJ_squid"]:

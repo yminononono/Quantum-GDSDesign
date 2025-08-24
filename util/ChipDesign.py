@@ -97,7 +97,10 @@ def sweep_chipdesign( config, userfunction = None ):
         for device in config["Grid_sweep_devices"]:
             updated_config = copy.copy(config)
             for key in device:
-                updated_config[key] = device[key]
+                if key in updated_config:
+                    updated_config[key] = device[key]
+                else:
+                    raise ValueError(f"{key} is not defined in original config !!")
             devices.append( globals()["chipdesign_" + config["Grid_name"]](updated_config) )
         devices.append( globals()["chipdesign_" + config["Grid_name"]](updated_config, only_frame = True) )
         device_list = []
