@@ -288,7 +288,6 @@ class device_FeedLine(BaseDevice):
         
         elif config["FeedLine_path_type"] == "manual":
             manual_path = [ LP_in.device.ports['out'].midpoint ] + config["FeedLine_path_points"] +  [ LP_out.device.ports['out'].midpoint ]
-            print(manual_path)
             D3 = pr.route_smooth(LP_in.device.ports['out'], 
                                     LP_out.device.ports['out'], 
                                     width = X_device, 
@@ -336,7 +335,7 @@ class device_EntangleLine(BaseDevice):
     def __init__(self, config):
         # make 2 pads
         super().__init__("entangleline")
-        pprint.pprint(config)
+
         X = CrossSection()
         line_width = 10
         line_gap_width = 6
@@ -387,7 +386,6 @@ class device_DCLine(BaseDevice):
         DCLine_device.add_port(name = 'out1', midpoint = [0., 0.], width = config["LaunchPad_trace_width"], orientation = 180)
         DCLine_pocket.add_port(name = 'out1', midpoint = [0., 0.], width = config["LaunchPad_trace_width"], orientation = 180)
 
-        print(self.device)
         DCLine_device = self.device.add_ref( DCLine_device )
         DCLine_device.connect(port = 'out1', destination = device_ref.ports['out'])
         
@@ -433,7 +431,6 @@ def device_TestAreas(config, DCLine = False):
     ]
     TP.add_polygon(polpoints)
     TP = pg.union(TP, by_layer = False, layer = config["TestPoint_layer"])
-    qp(TP)
 
     for center in point_pos:
         tp = TPs.add_ref( TP )

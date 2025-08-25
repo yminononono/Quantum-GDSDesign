@@ -5,6 +5,7 @@ JJ:
   squid: false
   photolitho: false
   bandage: false
+  entangle: true # Connect two transmons
 
   rounding: 0 # 0.05
   finger:

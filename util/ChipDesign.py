@@ -51,104 +51,77 @@ def init_chipdesign(config, param_x, param_y, x, y):
 
 def sweep_chipdesign( config, userfunction = None ):
 
-    def custom_design(n_level, param_x, param_y, x, y):
-        
-        init_chipdesign(config, param_x, param_y, x, y)
+    def _sweep_chipdesign( config, userfunction = None, first_call = True, param_x = None, param_y = None, x = None, y = None, n_level = None ):
 
-        # count_down
-        n_level -= 1
-
-        array = config["Grid_sweep_array"][n_level]
-
-        if n_level == 0:
-            if userfunction:
-                function = userfunction
-            else:
-                function = globals()["chipdesign_" + config["Grid_name"]]
-            param_defaults = { 'config' : config }
-        else:
-            function = custom_design
-            param_defaults = { 'n_level' : n_level }
-        param_defaults = {
-            **param_defaults, 
-            'param_x' : array["param_x"],
-            'param_y' : array["param_y"],   
-        }
-
-        design = pg.gridsweep(
-            function = function,
-            param_x = {'x' : array["x"]},
-            param_y = {'y' : array["y"]},
-            param_defaults = param_defaults,
-            spacing = (
-                array["gap_x"] * config["Frame_size_width"], 
-                array["gap_y"] * config["Frame_size_height"],
-            ),
-            # separation = False,
-            label_layer = None
+        if config["Grid_sweep_type"] == "array":
+            devices = []
+            for device in config["Grid_sweep_devices"]:
+                updated_config = copy.copy(config)
+                for key in device:
+                    if key in updated_config:
+                        updated_config[key] = device[key]
+                    else:
+                        raise ValueError(f"{key} is not defined in original config !!")
+                devices.append( globals()["chipdesign_" + config["Grid_name"]](updated_config) )
+            devices.append( globals()["chipdesign_" + config["Grid_name"]](updated_config, only_frame = True) )
+            device_list = []
+            for row in config["Grid_sweep_array"]:
+                for cell in row:
+                    if cell is None:
+                        device_list.append( devices[-1] )
+                    else:
+                        device_list.append( devices[cell] )
+            D = pg.grid(
+                device_list,
+                spacing = (config["Grid_sweep_gap_x"] * config["Frame_size_width"], config["Grid_sweep_gap_y"] * config["Frame_size_height"]),
+                shape = np.array(config["Grid_sweep_array"], dtype=object).shape
             )
-        design.center = (0,0)
-            
-        return design
-    
-
-    if config["Grid_sweep_type"] == "array":
-        devices = []
-        for device in config["Grid_sweep_devices"]:
-            updated_config = copy.copy(config)
-            for key in device:
-                if key in updated_config:
-                    updated_config[key] = device[key]
-                else:
-                    raise ValueError(f"{key} is not defined in original config !!")
-            devices.append( globals()["chipdesign_" + config["Grid_name"]](updated_config) )
-        devices.append( globals()["chipdesign_" + config["Grid_name"]](updated_config, only_frame = True) )
-        device_list = []
-        for row in config["Grid_sweep_array"]:
-            for cell in row:
-                if cell is None:
-                    device_list.append( devices[-1] )
-                else:
-                    device_list.append( devices[cell] )
-        D = pg.grid(
-            device_list,
-            spacing = (config["Grid_sweep_gap_x"] * config["Frame_size_width"], config["Grid_sweep_gap_y"] * config["Frame_size_height"]),
-            shape = np.array(config["Grid_sweep_array"], dtype=object).shape
-        )
-    elif config["Grid_sweep_type"] == "gridsweep":
-        n_level = len(config["Grid_sweep_array"]) - 1
-        array = config["Grid_sweep_array"][n_level]
-
-        if n_level == 0:
-            if userfunction:
-                function = userfunction
+        elif config["Grid_sweep_type"] == "gridsweep":
+            if first_call:
+                n_level = len(config["Grid_sweep_array"]) - 1
             else:
-                function = globals()["chipdesign_" + config["Grid_name"]]
-            param_defaults = { 'config' : config }
+                init_chipdesign(config, param_x, param_y, x, y)
+                # count_down
+                n_level -= 1
+            array = config["Grid_sweep_array"][n_level]
+
+            param_defaults = {}
+            if n_level == 0:
+                if userfunction:
+                    function = userfunction
+                else:
+                    function = globals()["chipdesign_" + config["Grid_name"]]
+            else:
+                function = _sweep_chipdesign
+                param_defaults = { 
+                    'n_level' : n_level,
+                    'first_call' : False,
+                }
+            param_defaults = {
+                **param_defaults, 
+                'param_x' : array["param_x"],
+                'param_y' : array["param_y"],   
+                'config' : config,
+            }
+
+            D = pg.gridsweep(
+                function = function,
+                param_x = {'x' : array["x"]},
+                param_y = {'y' : array["y"]},
+                param_defaults = param_defaults,
+                spacing = (
+                    array["gap_x"] * config["Frame_size_width"], 
+                    array["gap_y"] * config["Frame_size_height"],
+                ),
+                label_layer = None
+            )
+            D.center = (0, 0)
         else:
-            function = custom_design
-            param_defaults = { 'n_level' : n_level }
-        param_defaults = {
-            **param_defaults, 
-            'param_x' : array["param_x"],
-            'param_y' : array["param_y"],   
-        }
+            raise ValueError("Incorrect Grid_sweep_type !!")
 
-        D = pg.gridsweep(
-            function = function,
-            param_x = {'x' : array["x"]},
-            param_y = {'y' : array["y"]},
-            param_defaults = param_defaults,
-            spacing = (
-                array["gap_x"] * config["Frame_size_width"], 
-                array["gap_y"] * config["Frame_size_height"],
-            ),
-            label_layer = None
-        )
-    else:
-        raise ValueError("Incorrect Grid_sweep_type !!")
-
-    return D
+        return D
+    
+    return _sweep_chipdesign( config, userfunction )
 
 def chipdesign_Test(config, param_x, param_y, x, y):
 
@@ -165,6 +138,143 @@ def chipdesign_Test(config, param_x, param_y, x, y):
 
     return chipdesign
 
+
+def chipdesign_transmon2D(config, param_x = None, param_y = None, x = None, y = None, only_frame = False):
+
+    init_chipdesign(config, param_x, param_y, x, y)
+
+    chipdesign = Device('chipdesign')
+
+    FM = device_Frame(config)
+    
+    if only_frame or ((param_x is not None and x is None) or (param_y is not None and y is None)):
+        chipdesign.add_ref(FM)
+        return chipdesign
+
+    FL = device_FeedLine(config)
+    chipdesign.add_ref(FL.device)
+
+    CP = device_CornerPoints(config)
+    chipdesign.add_ref(CP)
+
+    TA = device_TestAreas(config, DCLine = config["DCLine_activate"])
+    chipdesign.add_ref(TA)
+
+    resonator_config = dict(
+        resonator_straight1 = 220, 
+        resonator_straight2 = 260, 
+        resonator_straight3 = 475, 
+        resonator_straight4 = 1400, 
+        entangle = config["JJ_entangle"],
+    )
+
+    R1 = device_Resonator(config, **resonator_config)
+    R1.movex(1315)
+    R1.ymax = FL.ymin - config["Feedline_Resonator_gap"]
+    chipdesign.add_ref(R1.device)
+
+    resonator_config.update(
+        resonator_straight1 = 240, 
+        resonator_straight2 = 290, 
+        resonator_straight3 = 475, 
+        resonator_straight4 = 1400, 
+    )
+
+    R2 = device_Resonator(config, **resonator_config)
+    R2.movex(145)
+    R2.ymax = FL.ymin - config["Feedline_Resonator_gap"]
+    chipdesign.add_ref(R2.device)
+
+    resonator_config.update(
+        resonator_straight1 = 310, 
+        resonator_straight2 = 360, 
+        resonator_straight3 = 475, 
+        resonator_straight4 = 1030,
+        side = True,
+        mirror = config["JJ_entangle"],
+    )
+
+    R3 = device_Resonator(config, **resonator_config)
+    R3.movey(408)
+    R3.xmax = FL.xmin - config["Feedline_Resonator_gap"]
+    chipdesign.add_ref(R3.device)
+
+    resonator_config.update(
+        resonator_straight1 = 275, 
+        resonator_straight2 = 325, 
+        resonator_straight3 = 475, 
+        resonator_straight4 = 1030,
+        side = True,
+        mirror = False
+    )
+
+    R4 = device_Resonator(config, **resonator_config)
+    R4.movey(1383)
+    R4.xmax = FL.xmin - config["Feedline_Resonator_gap"]
+    chipdesign.add_ref(R4.device)
+
+    if config["JJ_entangle"]:
+
+        entangle_config = dict(
+            port1 = R1.device.references[1].ports['entangle'],
+            port2 = R2.device.references[1].ports['entangle'],
+            radius = 75,
+            path_type = 'U',
+            length1 = 120 + 75,
+            smooth_options=  {'corner_fun': pp.arc}
+        )
+        line_1to2 = device_EntangleLine( entangle_config )
+
+        entangle_config = dict(
+            port1 = R3.device.references[1].ports['entangle'],
+            port2 = R4.device.references[1].ports['entangle'],
+            path_type = 'straight'
+        )    
+        line_3to4 = device_EntangleLine( entangle_config )   
+
+        chipdesign = pg.boolean(chipdesign, line_1to2.metal , 'not', layer = 4)
+        chipdesign = pg.boolean(chipdesign, line_3to4.metal , 'not', layer = 4)
+        chipdesign.add_ref( line_1to2.device )
+        chipdesign.add_ref( line_3to4.device )
+
+
+    if config["DCLine_activate"]:
+        DC = device_DCLine(config) 
+        chipdesign = pg.boolean(chipdesign, DC.metal, 'not', layer = 4)
+        chipdesign.add_ref(DC.device)
+
+    chipdesign.add_ref(FM)
+
+    BX = device_TestBoxes(DCLine = config["DCLine_activate"])
+    chipdesign.add_ref(BX)
+
+    JJ_trans = device_JJ({**config, **dict(JJ_squid = False)})          
+    JJ_squid = device_JJ({**config, **dict(JJ_squid = True)})  
+
+    EBLine = device_EBLine(config)
+
+    # SQUID
+    chipdesign.add_ref(JJ_squid).movex(1280).movey(-1880)
+    # transmon
+    chipdesign.add_ref(JJ_trans).movex(-172).movey(-1880)
+    # SQUID
+    chipdesign.add_ref(JJ_squid).movex(-1815).movey(315)    
+    # transmon
+    chipdesign.add_ref(JJ_trans).movex(-1560).movey(1290)
+
+    # transmon (test)
+    if config["DCLine_activate"]:
+        chipdesign.add_ref(JJ_trans).movex(-1493).movey(-1689)
+        chipdesign.add_ref(JJ_trans).movex(-1493).movey(-1038)
+        chipdesign.add_ref(EBLine).movex(-843).movey(-1689)
+        chipdesign.add_ref(EBLine).movex(-843).movey(-1038)
+    else:
+        chipdesign.add_ref(JJ_trans).movex(-1743).movey(-1739)
+        chipdesign.add_ref(JJ_trans).movex(-1743).movey(-1088)
+        chipdesign.add_ref(EBLine).movex(-1093).movey(-1739)
+        chipdesign.add_ref(EBLine).movex(-1093).movey(-1088)    
+
+    return chipdesign
 
 def chipdesign_transmon3D(config, param_x = None, param_y = None, x = None, y = None, only_frame = False):
 

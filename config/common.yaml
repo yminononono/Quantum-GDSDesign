@@ -46,7 +46,8 @@ Frame:
     height: 4800
     width: 4800
 
-DCLine:
+DCLine: 
+  activate: true # Add DC line next to squids
   radius: 100
 
 CornerPoint:
