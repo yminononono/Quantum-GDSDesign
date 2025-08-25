@@ -184,7 +184,7 @@ Grid:
       [0    , 1     , 2     , null, 1    , 0     , null  , 1   ],
       [1    , null  , 2     , 0   , 0    , 1     , 2     , null], 
     ]
-    gap_x : 1
+    gap_x : 0
     gap_y : 0
 ```
 
