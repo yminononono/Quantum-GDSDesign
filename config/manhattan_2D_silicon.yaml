@@ -5,7 +5,19 @@ JJ:
   squid: false
   photolitho: false
   bandage: false
-  entangle: true # Connect two transmons
+
+  # Connect two transmons
+  entangle:
+    - pairs: [0, 1]
+      path:
+        radius: 75
+        path_type: 'U'
+        length1: 195
+        smooth_options:
+          corner_fun: "pp.arc"
+    - pairs: [2, 3]          
+      path:
+        path_type: 'straight'
 
   rounding: 0 # 0.05
   finger:

@@ -2,6 +2,16 @@ import sys, copy
 from qubit_templates import *
 from functions import *
 
+def resolve_from_string(path: str, scope=None):
+    if scope is None:
+        scope = locals()
+
+    obj_name, *attrs = path.split(".")
+    obj = scope[obj_name] 
+    for a in attrs:
+        obj = getattr(obj, a)
+    return obj
+
 def deep_set(config, path, value, sep=":"):
     keys = path.split(sep)
     *parents, last = keys
@@ -74,7 +84,7 @@ def sweep_chipdesign( config, userfunction = None ):
             D = pg.grid(
                 device_list,
                 spacing = (config["Grid_sweep_gap_x"] * config["Frame_size_width"], config["Grid_sweep_gap_y"] * config["Frame_size_height"]),
-                shape = np.array(config["Grid_sweep_array"], dtype=object).shape
+                shape = np.array(config["Grid_sweep_array"], dtype=object).T.shape
             )
         elif config["Grid_sweep_type"] == "gridsweep":
             if first_call:
@@ -160,83 +170,34 @@ def chipdesign_transmon2D(config, param_x = None, param_y = None, x = None, y = 
     TA = device_TestAreas(config, DCLine = config["DCLine_activate"])
     chipdesign.add_ref(TA)
 
-    resonator_config = dict(
-        resonator_straight1 = 220, 
-        resonator_straight2 = 260, 
-        resonator_straight3 = 475, 
-        resonator_straight4 = 1400, 
-        entangle = config["JJ_entangle"],
-    )
+    R = []
+    for i, resonator_config in enumerate(config["Resonator_devices"]):
+        R.append( device_Resonator(config, **resonator_config) )
+        if "movex" in resonator_config:
+            R[i].movex( resonator_config["movex"] )
+        if "movey" in resonator_config:
+            R[i].movey( resonator_config["movey"] )
+        if "xmax" in resonator_config:
+            xmax_ref = resolve_from_string(path = resonator_config["xmax"], scope=locals()) if type(resonator_config["xmax"]) == str else resonator_config["xmax"]
+            R[i].xmax = xmax_ref - resonator_config["feedline_gap"]
+        if "ymax" in resonator_config:
+            ymax_ref = resolve_from_string(path = resonator_config["ymax"], scope=locals()) if type(resonator_config["ymax"]) == str else resonator_config["ymax"]
+            R[i].ymax = ymax_ref - resonator_config["feedline_gap"]
 
-    R1 = device_Resonator(config, **resonator_config)
-    R1.movex(1315)
-    R1.ymax = FL.ymin - config["Feedline_Resonator_gap"]
-    chipdesign.add_ref(R1.device)
-
-    resonator_config.update(
-        resonator_straight1 = 240, 
-        resonator_straight2 = 290, 
-        resonator_straight3 = 475, 
-        resonator_straight4 = 1400, 
-    )
-
-    R2 = device_Resonator(config, **resonator_config)
-    R2.movex(145)
-    R2.ymax = FL.ymin - config["Feedline_Resonator_gap"]
-    chipdesign.add_ref(R2.device)
-
-    resonator_config.update(
-        resonator_straight1 = 310, 
-        resonator_straight2 = 360, 
-        resonator_straight3 = 475, 
-        resonator_straight4 = 1030,
-        side = True,
-        mirror = config["JJ_entangle"],
-    )
-
-    R3 = device_Resonator(config, **resonator_config)
-    R3.movey(408)
-    R3.xmax = FL.xmin - config["Feedline_Resonator_gap"]
-    chipdesign.add_ref(R3.device)
-
-    resonator_config.update(
-        resonator_straight1 = 275, 
-        resonator_straight2 = 325, 
-        resonator_straight3 = 475, 
-        resonator_straight4 = 1030,
-        side = True,
-        mirror = False
-    )
-
-    R4 = device_Resonator(config, **resonator_config)
-    R4.movey(1383)
-    R4.xmax = FL.xmin - config["Feedline_Resonator_gap"]
-    chipdesign.add_ref(R4.device)
+        chipdesign.add_ref(R[i].device)
+    
 
     if config["JJ_entangle"]:
-
-        entangle_config = dict(
-            port1 = R1.device.references[1].ports['entangle'],
-            port2 = R2.device.references[1].ports['entangle'],
-            radius = 75,
-            path_type = 'U',
-            length1 = 120 + 75,
-            smooth_options=  {'corner_fun': pp.arc}
-        )
-        line_1to2 = device_EntangleLine( entangle_config )
-
-        entangle_config = dict(
-            port1 = R3.device.references[1].ports['entangle'],
-            port2 = R4.device.references[1].ports['entangle'],
-            path_type = 'straight'
-        )    
-        line_3to4 = device_EntangleLine( entangle_config )   
-
-        chipdesign = pg.boolean(chipdesign, line_1to2.metal , 'not', layer = 4)
-        chipdesign = pg.boolean(chipdesign, line_3to4.metal , 'not', layer = 4)
-        chipdesign.add_ref( line_1to2.device )
-        chipdesign.add_ref( line_3to4.device )
-
+        line = []
+        for i, entangle_config in enumerate(config["JJ_entangle"]):
+            pairs = entangle_config["pairs"]
+            port_config = dict(
+                port1 = R[ pairs[0] ].device.references[1].ports['entangle'],
+                port2 = R[ pairs[1] ].device.references[1].ports['entangle']
+            )
+            line.append( device_EntangleLine({**port_config, **entangle_config["path"]}) )
+            chipdesign = pg.boolean(chipdesign, line[i].metal, 'not', layer = 4)
+            chipdesign.add_ref( line[i].device )
 
     if config["DCLine_activate"]:
         DC = device_DCLine(config) 
@@ -255,11 +216,8 @@ def chipdesign_transmon2D(config, param_x = None, param_y = None, x = None, y = 
 
     # SQUID
     chipdesign.add_ref(JJ_squid).movex(1280).movey(-1880)
-    # transmon
     chipdesign.add_ref(JJ_trans).movex(-172).movey(-1880)
-    # SQUID
     chipdesign.add_ref(JJ_squid).movex(-1815).movey(315)    
-    # transmon
     chipdesign.add_ref(JJ_trans).movex(-1560).movey(1290)
 
     # transmon (test)
@@ -364,7 +322,6 @@ def chipdesign_TcSample(config, param_x = None, param_y = None, x = None, y = No
 
     # Resonator
     R = []
-    # print(config["Resonator_devices"][0]["norm_to_frequency"])
     for i, resonator_config in enumerate(config["Resonator_devices"]):
         R.append( device_Resonator(config, **resonator_config) )
         R[i].rotate(resonator_config["angle"])

@@ -36,9 +36,6 @@ FeedLine:
     length2: 768
     radius: 100
 
-Feedline_Resonator:
-  gap: 13 
-
 Frame:
   layer: 25
   width: 50
@@ -70,7 +67,43 @@ Resonator:
     length: 700
   gap:
     width: 6
-    
+  devices:
+    - resonator_straight1: 220
+      resonator_straight2: 260
+      resonator_straight3: 475
+      resonator_straight4: 1400
+      entangle: true
+      feedline_gap: 13
+      movex: 1315
+      ymax: "FL.ymin"
+    - resonator_straight1: 240
+      resonator_straight2: 290
+      resonator_straight3: 475
+      resonator_straight4: 1400
+      entangle: true
+      feedline_gap: 13
+      movex: 145
+      ymax: "FL.ymin"
+    - resonator_straight1: 310
+      resonator_straight2: 360
+      resonator_straight3: 475
+      resonator_straight4: 1030
+      entangle: true
+      feedline_gap: 13
+      side: true
+      mirror: true
+      movey: 408
+      xmax: "FL.xmin"
+    - resonator_straight1: 275
+      resonator_straight2: 325
+      resonator_straight3: 475
+      resonator_straight4: 1030
+      entangle: true
+      feedline_gap: 13
+      side: true
+      mirror: false
+      movey: 1383
+      xmax: "FL.xmin"
 
 TestPoint:
   layer: 4

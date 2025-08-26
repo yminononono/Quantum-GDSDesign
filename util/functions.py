@@ -7,6 +7,23 @@ import numpy as np
 from phidl import quickplot as qp
 from phidl import Device
 import phidl.geometry as pg
+import phidl.path as pp
+
+def replace_special_strings(obj):
+
+    STRING_TO_OBJECT = {
+        "pp.arc": pp.arc,
+    }
+
+    """辞書やリストを再帰的に探索し、特殊な文字列を対応するオブジェクトに変換"""
+    if isinstance(obj, dict):
+        return {k: replace_special_strings(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [replace_special_strings(v) for v in obj]
+    elif isinstance(obj, str) and obj in STRING_TO_OBJECT:
+        return STRING_TO_OBJECT[obj]
+    else:
+        return obj
 
 # YAML 設定ファイルを読み込む関数
 def load_config(file_path):
@@ -15,6 +32,7 @@ def load_config(file_path):
 
     flat_data = flatten_dict(config)
     global_data = {f"{k}": v for k, v in flat_data.items()}
+    global_data = replace_special_strings(global_data)
 
     return global_data
 
@@ -89,7 +107,7 @@ def phidl_to_metal(device_list, outname):
 
 def extract_with_ports(device, layers_to_extract):
 
-    print(device.get_ports())
+    # print(device.get_ports())
     extracted = pg.extract(device, layers_to_extract)
     
     for port in device.get_ports():
