@@ -141,8 +141,8 @@ def chipdesign_Test(config, param_x, param_y, x, y):
 
     # Frame
     FM=Device('frame')
-    rectangle = pg.rectangle((Frame_size_width, Frame_size_height), Frame_layer)
-    FM.add_ref( pg.invert(rectangle, border = Frame_width, precision = 1e-6, layer = Frame_layer) )
+    rectangle = pg.rectangle((config["Frame_size_width"], config["Frame_size_height"]), config["Frame_layer"])
+    FM.add_ref( pg.invert(rectangle, border = config["Frame_width"], precision = 1e-6, layer = config["Frame_layer"]) )
     FM.center = (0, 0)
     chipdesign.add_ref(FM)
 
@@ -172,6 +172,11 @@ def chipdesign_transmon2D(config, param_x = None, param_y = None, x = None, y = 
 
     R = []
     for i, resonator_config in enumerate(config["Resonator_devices"]):
+
+        # Set entangle flag
+        if config.get("JJ_entangle") and any(i in entangle_config["pairs"] for entangle_config in config["JJ_entangle"]):
+            resonator_config.update( entangle = True )
+
         R.append( device_Resonator(config, **resonator_config) )
         if "movex" in resonator_config:
             R[i].movex( resonator_config["movex"] )
@@ -209,28 +214,27 @@ def chipdesign_transmon2D(config, param_x = None, param_y = None, x = None, y = 
     BX = device_TestBoxes(DCLine = config["DCLine_activate"])
     chipdesign.add_ref(BX)
 
-    JJ_trans = device_JJ({**config, **dict(JJ_squid = False)})          
-    JJ_squid = device_JJ({**config, **dict(JJ_squid = True)})  
+    JJ = []
+    for i, jj_config in enumerate(config["JJ_devices"]):
+        JJ.append( device_JJ({**config, **jj_config}) )         
 
-    EBLine = device_EBLine(config)
+        if "movex" in jj_config:
+            JJ[i].movex( jj_config["movex"] )
+        if "movey" in jj_config:
+            JJ[i].movey( jj_config["movey"] )
 
-    # SQUID
-    chipdesign.add_ref(JJ_squid).movex(1280).movey(-1880)
-    chipdesign.add_ref(JJ_trans).movex(-172).movey(-1880)
-    chipdesign.add_ref(JJ_squid).movex(-1815).movey(315)    
-    chipdesign.add_ref(JJ_trans).movex(-1560).movey(1290)
+        chipdesign.add_ref(JJ[i])
 
-    # transmon (test)
-    if config["DCLine_activate"]:
-        chipdesign.add_ref(JJ_trans).movex(-1493).movey(-1689)
-        chipdesign.add_ref(JJ_trans).movex(-1493).movey(-1038)
-        chipdesign.add_ref(EBLine).movex(-843).movey(-1689)
-        chipdesign.add_ref(EBLine).movex(-843).movey(-1038)
-    else:
-        chipdesign.add_ref(JJ_trans).movex(-1743).movey(-1739)
-        chipdesign.add_ref(JJ_trans).movex(-1743).movey(-1088)
-        chipdesign.add_ref(EBLine).movex(-1093).movey(-1739)
-        chipdesign.add_ref(EBLine).movex(-1093).movey(-1088)    
+    EB = []
+    for i, eb_config in enumerate(config["EBLine_devices"]):
+        EB.append( device_EBLine(config) )       
+
+        if "movex" in eb_config:
+            EB[i].movex( eb_config["movex"] )
+        if "movey" in eb_config:
+            EB[i].movey( eb_config["movey"] )   
+
+        chipdesign.add_ref(EB[i])
 
     return chipdesign
 

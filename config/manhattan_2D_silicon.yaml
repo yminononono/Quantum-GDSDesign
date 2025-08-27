@@ -7,6 +7,7 @@ JJ:
   bandage: false
 
   # Connect two transmons
+  # Numbers in pairs represent device index for resonators
   entangle:
     - pairs: [0, 1]
       path:
@@ -19,6 +20,7 @@ JJ:
       path:
         path_type: 'straight'
 
+  # default
   rounding: 0 # 0.05
   finger:
     layer: 1
@@ -36,3 +38,32 @@ JJ:
     width2: 40
     length: 100
     gap: 10
+
+  devices:
+    # main samples
+    - # JJ_finger_width: 0.15
+      JJ_squid: true
+      movex: 1280
+      movey: -1880
+    - # JJ_finger_width: 0.15
+      JJ_squid: false
+      movex: -172
+      movey: -1880
+    - # JJ_finger_width: 0.15
+      JJ_squid: true
+      movex: -1815
+      movey: 315
+    - # JJ_finger_width: 0.15
+      JJ_squid: false
+      movex: -1560
+      movey: 1290
+    # test samples (# Without DC Line)
+    - # JJ_finger_width: 0.15
+      JJ_squid: false
+      movex: -1493.5  # -1743
+      movey: -1689    # -1739
+    - # JJ_finger_width: 0.15
+      JJ_squid: false
+      movex: -1493.5  # -1743
+      movey: -1038    # -1088
+
