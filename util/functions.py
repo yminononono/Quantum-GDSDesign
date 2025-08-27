@@ -9,11 +9,11 @@ from phidl import Device
 import phidl.geometry as pg
 import phidl.path as pp
 
-def replace_special_strings(obj):
+STRING_TO_OBJECT = {
+    "pp.arc": pp.arc,
+}
 
-    STRING_TO_OBJECT = {
-        "pp.arc": pp.arc,
-    }
+def replace_special_strings(obj):
 
     """辞書やリストを再帰的に探索し、特殊な文字列を対応するオブジェクトに変換"""
     if isinstance(obj, dict):
@@ -27,14 +27,23 @@ def replace_special_strings(obj):
 
 # YAML 設定ファイルを読み込む関数
 def load_config(file_path):
-    with open(file_path, 'r') as file:
-        config = yaml.safe_load(file)
 
-    flat_data = flatten_dict(config)
-    global_data = {f"{k}": v for k, v in flat_data.items()}
-    global_data = replace_special_strings(global_data)
-
-    return global_data
+    def _load_config( _file_name ):
+        with open(_file_name, 'r') as _file:
+            _config = yaml.safe_load(_file)
+        _flat_data = flatten_dict(_config)
+        _global_data = {f"{k}": v for k, v in _flat_data.items()}
+        _global_data = replace_special_strings(_global_data)
+        return _global_data
+    
+    config = {}
+    if type(file_path) == list: # For list type, config will be overwritten by value in the right 
+        for file in file_path:
+            config = {**config, **_load_config( file )}
+    else:
+        config = _load_config( file_path )
+    
+    return config
 
 # 再帰的にフラットな変数名で辞書を展開
 def flatten_dict(d, parent_key="", sep="_"):

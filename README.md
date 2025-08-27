@@ -5,17 +5,20 @@ There are other packages such as [gdsfactory](https://gdsfactory.github.io/gdsfa
 
 
 - [Quantum GDS Design](#quantum-gds-design)
-    - [Install](#install)
-        - [Conda environment](#conda-environment)
-    - [Functions](#functions)
-    - [Designs for qiskit-metal](#designs-for-qiskit-metal)
+  - [Install](#install)
+    - [Conda environment](#conda-environment)
+  - [How to make your own design?](#how-to-make-your-own-design)
+    - [Templates](#templates)
     - [Configuration](#configuration)
-        - [Layer](#layer)
-        - [Feedline](#feedline)
     - [Parameter Sweep](#parameter-sweep)
+    - [Designs for qiskit-metal](#designs-for-qiskit-metal)
+  - [Device details](#device-details)
+    - [Layer](#layer)
+    - [Feedline](#feedline)
 
 
 ## Install
+---
 
 ### Conda environment
 
@@ -39,73 +42,105 @@ For Mac users, you can also use the environment.yml to setup the environment
 $ conda env create -f environment.yml
 ```
 
-## Functions
+## How to make your own design?
+---
 
-Functions are summarized in the ```util/qubit_templates.py``` file.
+- Basics
+  - Make a jupyter notebook and use predefined [templates](#templates) to make your own chip design.
+  - Configurations passed to the template functions are organized under the ```config``` directory. If you need to modify design parameters, you can directly change the values in the yaml files. Details about the variables are in the  [configuration](#configuration) section.
+- Advanced
+  - If you need more control for parameter sweeps, define your own chip design function in ```util/ChipDesign.py```. There are several ways to make grid sweeps and details are under the [parameter sweep](#parameter-sweep) section.
+  - If you want to pass your gds designs to qiskit-metal, there are some functions which might be helpful. Follow the instructions under the [designs for qiskit-metal](#designs-for-qiskit-metal) section.
 
-|    Function name    |                   Description                   |
-| :------------------ | :---------------------------------------------- |
-| device_Wafer        | Return wafer design                             |
-| device_LaunchPad    | Return launch pad design                        |
-| device_FeedLine     | Return feed line which connects two launch pads |
-| device_CornerPoints | Return boxes placed in the corners              |
-| device_TestAreas    | Return areas to place test JJs                  |
-| device_Resonator    | Return resonator design                         |
+### Templates
 
-## Designs for qiskit-metal
+Functions to produce devices are summarized in ```util/qubit_templates.py```.
 
-The BaseDevice class in ```util/BaseDevice.py``` is used to produce designs for qiskit-metal.
-Users need to provide the following designs.
+|    Function name    |                   Description                   | qiskit-metal compatibility |
+| :------------------ | :---------------------------------------------- | :------------------------: |
+| device_Wafer        | Return wafer design                             |             x              |
+| device_Frame        | Return frames for chip design                   |             x              |
+| device_LaunchPad    | Return launch pad design                        |             o              |
+| device_Pad          | Return capacitance pads for 3D transmon         |             o              |
+| device_FeedLine     | Return feed line which connects two launch pads |             o              |
+| device_EntangleLine | Return lines to connect two transmons           |             o              |
+| device_DCLine       | Return design for DC line                       |             o              |
+| device_CornerPoints | Return boxes placed in the corners              |             x              |
+| device_TestAreas    | Return areas to place test JJs                  |             x              |
+| device_Resonator    | Return resonator design                         |             o              |
+| device_JJ           | Return josephson junction designs               |             x              |
 
-1. device : Lithography area.
-2. pocket : Area which includes the lithography and gap area.
-3. metal  : Area which will be evaporated with metal. The area does not include the ground plane. The metal area is usually produced by subtracting the pocket area by the device area.
+### Configuration
 
-The BaseDevice class has its own functions to move and rotate all of the designs at the same time.
-
-The device functions inherit the BaseDevice class.
-After making the objects, you can pass them to the ```phidl_to_metal()``` function to produce gds and yaml files.
-These files can be processed by qiskit-metal to produce your own QComponents and can be easily passed to HFSS simulations.
+Parameters to configure the designs are organized as yaml files under the ```config``` directory.
+Read the config file in your jupyter notebook.
 
 ```python
-device_list = [
-    dict(device = FL, name = "FeedLine"),
-    dict(device = R1, name = "Resonator1"),    
-    dict(device = R2, name = "Resonator2"),
-]
-
-phidl_to_metal(
-    device_list = device_list, 
-    outname = "TcSampleDesign"
-)
+from functions import *
+config = load_config( "config/common.yaml" )
 ```
 
-After converting PHIDL to qiskit-metal designs, you can find the output files under ```output/qiskit-metal/```.
+If you need to read multiple yaml files, you can concatenate multiple configurations by passing a file list to the ```load_config``` function.
+
+```python
+from functions import *
+config = load_config( ["config/common.yaml", f"config/silicon_2D_silicon.yaml"] ) # If these files include the same keys, the original value will be overwritten by config files on the right side
+
+# # What the function is doing
+# common_config = load_config( f"config/common.yaml" )
+# config = load_config( f"config/manhattan_2D_silicon.yaml" )
+# config = {**common_config, **config} 
+```
+
+The ```load_config``` function flattens the dictionary by concatenating the keys  with ```_```.
+For example, suppose you have a yaml file like
+
+```yaml
+Wafer:
+  layer: 21
+  inch: 4
+
+LaunchPad:
+  layer: 4
+  pad:
+    length: 300
+    width: 200
+    gap:
+      length: 400
+      width: 500
+  trace:
+    length: 200
+    width: 20
+    gap:
+      width: 11
+```
+
+This will be converted to a dictionary like
+
+```python
+config = {
+ 'Wafer_layer': 21,
+ 'Wafer_inch' : 4,
+ 'LaunchPad_layer'          : 4,
+ 'LaunchPad_pad_gap_length' : 400,
+ 'LaunchPad_pad_gap_width'  : 500,
+ 'LaunchPad_pad_length'     : 300,
+ 'LaunchPad_pad_width'      : 200,
+ 'LaunchPad_trace_gap_width': 11,
+ 'LaunchPad_trace_length'   : 200,
+ 'LaunchPad_trace_width'    : 20
+}
+```
+
+Variables defined in the dictionary can be swept by parameter sweeps.
+Use the concatenated variable names when you need to run a parameter sweep.
 
 
-## Configuration
-
-### Layer
-
-| Device name | Layer Number |
-| :---------- | :----------- |
-| Grid line   | 9            |
-| Wafer       | 21           |
-| Chip Frame  | 25           |
+You may want to pass some objects defined by PHIDL, such as ```pp.arc``` when connecting two ports.
+The ```functions.py``` has a ```STRING_TO_OBJECT``` dictionary, which checks for specific strings and convert them to the corresponding objects.
 
 
-### Feedline
-
-input & output
-- type : LaunchPad, OpenToGround, ShortToGround
-
-path
-- straight, J ...
-- manual
-- extrude
-
-
-## Parameter Sweep
+### Parameter Sweep
 
 You can place your chip designs in a grid, while sweeping variables defined in your configuration file.
 To activate the parameter sweep, you just need to add ```D = sweep_chipdesign( config )```, which returns chip designs placed in a grid.
@@ -221,3 +256,57 @@ Grid:
         gap_x: 1
         gap_y: 1
 ```
+
+### Designs for qiskit-metal
+
+The BaseDevice class in ```util/BaseDevice.py``` is used to produce designs for qiskit-metal.
+Users need to provide the following designs.
+
+1. device : Lithography area.
+2. pocket : Area which includes the lithography and gap area.
+3. metal  : Area which will be evaporated with metal. The area does not include the ground plane. The metal area is usually produced by subtracting the pocket area by the device area.
+
+The BaseDevice class has its own functions to move and rotate all of the designs at the same time.
+
+The device functions inherit the BaseDevice class.
+After making the objects, you can pass them to the ```phidl_to_metal()``` function to produce gds and yaml files.
+These files can be processed by qiskit-metal to produce your own QComponents and can be easily passed to HFSS simulations.
+
+```python
+device_list = [
+    dict(device = FL, name = "FeedLine"),
+    dict(device = R1, name = "Resonator1"),    
+    dict(device = R2, name = "Resonator2"),
+]
+
+phidl_to_metal(
+    device_list = device_list, 
+    outname = "TcSampleDesign"
+)
+```
+
+After converting PHIDL to qiskit-metal designs, you can find the output files under ```output/qiskit-metal/```.
+
+## Device details
+
+### Layer
+
+Layer numbers for each device are configured in the yaml file.
+Numbers below 10 are basically the ones you need to assign for lithography.
+
+| Device name | Layer Number |
+| :---------- | :----------- |
+| Grid line   | 9            |
+| Wafer       | 21           |
+| Chip Frame  | 25           |
+
+
+### Feedline
+
+input & output
+- type : LaunchPad, OpenToGround, ShortToGround
+
+path
+- straight, J ...
+- manual
+- extrude
